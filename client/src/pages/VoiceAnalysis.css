@@ -1,0 +1,382 @@
+/* Voice Analysis page specific styles */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.title-icon {
+  margin-right: 0.5rem;
+  color: #4361ee;
+}
+
+/* Info Box */
+.info-box {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.info-box.light {
+  background-color: #e8f4fd;
+  color: #0277bd;
+}
+
+.info-box.dark {
+  background-color: #1a3a4a;
+  color: #90caf9;
+}
+
+.info-icon {
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* Recording Section */
+.recording-section {
+  padding: 2rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.recording-section.light {
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recording-section.dark {
+  background-color: #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.recording-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn-record {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+}
+
+.btn-play {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recording-visualizer {
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.recording-section.light .recording-visualizer {
+  background-color: #f8f9fa;
+}
+
+.recording-section.dark .recording-visualizer {
+  background-color: #333;
+}
+
+.recording-active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.recording-waves {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  gap: 0.25rem;
+}
+
+.wave {
+  width: 5px;
+  height: 100%;
+  background-color: #4361ee;
+  border-radius: 2px;
+  animation: wave 1s ease-in-out infinite;
+}
+
+.wave:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.wave:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes wave {
+  0%, 100% {
+    height: 20px;
+  }
+  50% {
+    height: 60px;
+  }
+}
+
+.recording-inactive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #6c757d;
+}
+
+.recording-section.dark .recording-inactive {
+  color: #adb5bd;
+}
+
+.audio-waveform {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.waveform-container {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+  width: 80%;
+}
+
+.waveform-bar {
+  flex: 1;
+  background-color: #4361ee;
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+.recording-actions {
+  display: flex;
+  justify-content: center;
+}
+
+/* Section Header */
+.section-header {
+  margin: 2rem 0 1rem;
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.loading-container .spinner {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 1rem;
+}
+
+/* Analyses List */
+.analyses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.analysis-card {
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.analysis-card.light {
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-card.dark {
+  background-color: #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.analysis-card:hover {
+  transform: translateY(-3px);
+}
+
+.analysis-card.light:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-card.dark:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.analysis-header {
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.analysis-card.dark .analysis-header {
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.analysis-date {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.analysis-card.dark .analysis-date {
+  color: #adb5bd;
+}
+
+.risk-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.risk-badge.high {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.risk-badge.medium {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+
+.risk-badge.low {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.analysis-card.dark .risk-badge.high {
+  background-color: rgba(244, 67, 54, 0.2);
+}
+
+.analysis-card.dark .risk-badge.medium {
+  background-color: rgba(255, 152, 0, 0.2);
+}
+
+.analysis-card.dark .risk-badge.low {
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.risk-score {
+  font-weight: 600;
+}
+
+.analysis-body {
+  padding: 1.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.findings-section h3,
+.recommendations-section h3 {
+  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.findings-list,
+.recommendations-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.findings-list li,
+.recommendations-list li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.findings-list li:before,
+.recommendations-list li:before {
+  content: "•";
+  position: absolute;
+  left: 0.5rem;
+  color: #4361ee;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  border-radius: 10px;
+}
+
+.empty-state.light {
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state.dark {
+  background-color: #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #4361ee;
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  margin-bottom: 0;
+  color: #6c757d;
+}
+
+.empty-state.dark p {
+  color: #adb5bd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .analysis-body {
+    grid-template-columns: 1fr;
+  }
+  
+  .findings-section {
+    margin-bottom: 1.5rem;
+  }
+}

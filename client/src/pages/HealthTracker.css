@@ -1,0 +1,367 @@
+/* Health Tracker page specific styles */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.title-icon {
+  margin-right: 0.5rem;
+  color: #4361ee;
+}
+
+/* Tabs */
+.tabs-container {
+  margin-bottom: 2rem;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.dark .tabs {
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  position: relative;
+}
+
+.tab:hover {
+  color: #4361ee;
+}
+
+.tab.active {
+  color: #4361ee;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #4361ee;
+}
+
+/* Health Metrics Form */
+.metrics-form {
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+}
+
+.metrics-form.light {
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metrics-form.dark {
+  background-color: #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-row .form-group {
+  margin-bottom: 0;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.dark .form-control {
+  background-color: #333;
+  border-color: #555;
+  color: #fff;
+}
+
+.form-control:focus {
+  border-color: #4361ee;
+  outline: 0;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+}
+
+.input-group .form-control {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  flex: 1;
+}
+
+.input-group-text {
+  padding: 0.75rem;
+  font-size: 1rem;
+  background-color: #e9ecef;
+  border: 1px solid #ced4da;
+  border-left: none;
+  border-top-right-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.dark .input-group-text {
+  background-color: #444;
+  border-color: #555;
+  color: #fff;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Alerts */
+.alert {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.alert.light {
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.alert.dark {
+  background-color: #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.alert-icon {
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.alert-success {
+  border-left: 4px solid #4caf50;
+}
+
+.alert-success .alert-icon {
+  color: #4caf50;
+}
+
+.alert-error {
+  border-left: 4px solid #f44336;
+}
+
+.alert-error .alert-icon {
+  color: #f44336;
+}
+
+.alert-close {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.5;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
+/* Health Metrics History */
+.metrics-history {
+  padding: 1.5rem;
+  border-radius: 10px;
+}
+
+.metrics-history.light {
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metrics-history.dark {
+  background-color: #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.history-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.filter-label {
+  font-weight: 500;
+}
+
+.filter-select {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+}
+
+.dark .filter-select {
+  background-color: #333;
+  border-color: #555;
+  color: #fff;
+}
+
+/* Chart Container */
+.chart-container {
+  height: 300px;
+  margin-bottom: 2rem;
+}
+
+/* Metrics Table */
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.metrics-table th,
+.metrics-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.dark .metrics-table th,
+.dark .metrics-table td {
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.metrics-table th {
+  font-weight: 600;
+}
+
+.metrics-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.dark .metrics-table tbody tr:hover {
+  background-color: #333;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #4361ee;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 1rem;
+}
+
+.dark .spinner {
+  border-color: rgba(255, 255, 255, 0.1);
+  border-top-color: #4361ee;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #4361ee;
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+/* Spinner Icon */
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .filter-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .metrics-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

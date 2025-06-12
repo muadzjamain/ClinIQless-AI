@@ -1,0 +1,43 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.layout.light {
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+.layout.dark {
+  background-color: #212529;
+  color: #f8f9fa;
+}
+
+.layout-container {
+  display: flex;
+  flex: 1;
+}
+
+.main-content {
+  flex: 1;
+  padding: 1.5rem;
+  transition: margin-left 0.3s ease;
+  margin-left: 250px;
+  overflow-y: auto;
+}
+
+.main-content.sidebar-closed {
+  margin-left: 70px;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+  
+  .main-content.sidebar-closed {
+    margin-left: 0;
+  }
+}
