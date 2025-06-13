@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
+import FloatingChatbot from '../chatbot/FloatingChatbot';
 import { useTheme } from '../../contexts/ThemeContext';
 import './Layout.css';
 
@@ -31,6 +32,9 @@ function Layout() {
       </div>
       
       <Footer />
+      
+      {/* Floating Chatbot that appears on all pages */}
+      <FloatingChatbot />
     </div>
   );
 }
