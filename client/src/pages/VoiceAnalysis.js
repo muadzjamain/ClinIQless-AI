@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, query, where, getDocs, orderBy, doc, deleteDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaInfoCircle, FaExclamationTriangle, FaChartLine, FaCheck } from 'react-icons/fa';
+import { collection, query, where, getDocs, orderBy, doc, deleteDoc } from 'firebase/firestore';
+import { getStorage, ref, deleteObject } from 'firebase/storage';
+import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaInfoCircle, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import './VoiceAnalysis.css';
@@ -42,7 +42,7 @@ function VoiceAnalysis() {
   // Language labels
   const labels = {
     en: {
-      title: 'Diabetes Voice Analysis',
+      title: 'Glucose Checker',
       description: 'Record your voice to assess potential diabetes risk factors.',
       startRecording: 'Start Recording',
       stopRecording: 'Stop Recording',
@@ -83,7 +83,7 @@ function VoiceAnalysis() {
       generatingResults: 'Generating results...'
     },
     ms: {
-      title: 'Analisis Suara Diabetes',
+      title: 'Pemeriksa Glukosa',
       description: 'Rakam suara anda untuk menilai faktor risiko diabetes yang berpotensi.',
       startRecording: 'Mula Rakaman',
       stopRecording: 'Hentikan Rakaman',
@@ -327,192 +327,7 @@ function VoiceAnalysis() {
     }, 1000);
   };
   
-  // Handle analyze glucose level from voice
-  const analyzeGlucoseLevel = async () => {
-    if (!audioBlob || !recordingDone) {
-      setError('Please record and complete your voice sample first');
-      return;
-    }
-    
-    setAnalyzing(true);
-    setAnalysisProgress(10);
-    
-    try {
-      // Simulate glucose analysis
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setAnalysisProgress(50);
-      
-      // Generate a realistic glucose level (normal range: 4.0-7.0 mmol/L or 70-126 mg/dL)
-      // For demonstration, we'll generate a value that could be normal, pre-diabetic, or diabetic
-      const randomValue = Math.random();
-      let glucoseValueMmol;
-      
-      if (randomValue < 0.6) {
-        // Normal range (4.0-7.0 mmol/L)
-        glucoseValueMmol = (4.0 + (Math.random() * 3.0)).toFixed(1);
-      } else if (randomValue < 0.85) {
-        // Pre-diabetic range (7.1-11.0 mmol/L)
-        glucoseValueMmol = (7.1 + (Math.random() * 3.9)).toFixed(1);
-      } else {
-        // Diabetic range (>11.0 mmol/L)
-        glucoseValueMmol = (11.1 + (Math.random() * 5.0)).toFixed(1);
-      }
-      
-      // Convert to mg/dL (multiply by 18)
-      const glucoseValueMgdl = Math.round(glucoseValueMmol * 18);
-      
-      setGlucoseLevel({
-        mmol: glucoseValueMmol,
-        mgdl: glucoseValueMgdl,
-        status: glucoseValueMmol < 7.0 ? 'normal' : glucoseValueMmol < 11.1 ? 'pre-diabetic' : 'diabetic'
-      });
-      
-      setAnalysisProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-    } catch (error) {
-      console.error('Error analyzing glucose level:', error);
-      setError('Failed to analyze glucose level: ' + error.message);
-    } finally {
-      setAnalyzing(false);
-      setAnalysisProgress(0);
-    }
-  };
-  
-  // Handle analyze voice
-  const analyzeVoice = async () => {
-    if (!audioBlob) {
-      setError('No recording available to analyze');
-      return;
-    }
-    
-    setAnalyzing(true);
-    setAnalysisProgress(10);
-    
-    try {
-      // Upload audio to Firebase Storage
-      const audioFileName = `voice_analysis_${currentUser.uid}_${Date.now()}.webm`;
-      const audioRef = ref(storage, `voice-recordings/${currentUser.uid}/${audioFileName}`);
-      
-      // Update progress
-      setAnalysisProgress(20);
-      setError('');
-      
-      // Upload the audio file
-      await uploadBytes(audioRef, audioBlob);
-      setAnalysisProgress(40);
-      
-      // Get the download URL
-      const audioDownloadURL = await getDownloadURL(audioRef);
-      setAnalysisProgress(50);
-      
-      // In a production environment, we would send this URL to a backend service
-      // that would process the audio using speech-to-text and AI analysis
-      // For now, we'll simulate the analysis with diabetes-specific findings
-      
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setAnalysisProgress(70);
-      
-      // Generate diabetes-specific analysis result
-      const diabetesKeywords = [
-        'thirst', 'urination', 'blurry', 'vision', 'tired', 'fatigue',
-        'healing', 'tingling', 'family', 'history', 'diabetes'
-      ];
-      
-      // Simulate finding these keywords in the audio
-      const detectedKeywords = diabetesKeywords.filter(() => Math.random() > 0.4);
-      
-      // Calculate risk score based on number of keywords detected
-      const riskScore = Math.min(100, Math.floor((detectedKeywords.length / diabetesKeywords.length) * 100) + Math.floor(Math.random() * 30));
-      
-      // Set risk level
-      let riskLevel;
-      if (riskScore < 30) {
-        riskLevel = 'low';
-      } else if (riskScore < 70) {
-        riskLevel = 'medium';
-      } else {
-        riskLevel = 'high';
-      }
-      
-      // Calculate risk factors based on detected keywords
-      const diabetesRiskFactors = {
-        familyHistory: detectedKeywords.includes('family') || detectedKeywords.includes('history'),
-        highBloodSugar: detectedKeywords.includes('thirst') || detectedKeywords.includes('urination'),
-        excessiveThirst: detectedKeywords.includes('thirst'),
-        frequentUrination: detectedKeywords.includes('urination'),
-        unexplainedWeightLoss: Math.random() > 0.7,
-        fatigue: detectedKeywords.includes('tired') || detectedKeywords.includes('fatigue'),
-        blurredVision: detectedKeywords.includes('blurry') || detectedKeywords.includes('vision'),
-        slowHealing: detectedKeywords.includes('healing')
-      };
-      setAnalysisProgress(90);
-      
-      // Generate recommendations based on risk level
-      let recommendations = [];
-      
-      if (riskLevel === 'low') {
-        recommendations = [
-          'Maintain a healthy diet and regular exercise',
-          'Continue monitoring your blood sugar levels periodically',
-          'Schedule a routine check-up with your healthcare provider'
-        ];
-      } else if (riskLevel === 'medium') {
-        recommendations = [
-          'Consider scheduling a diabetes screening test',
-          'Monitor your carbohydrate intake and blood sugar levels',
-          'Increase physical activity to at least 150 minutes per week',
-          'Follow up with a healthcare provider within 1-2 months'
-        ];
-      } else {
-        recommendations = [
-          'Schedule an immediate appointment with a healthcare provider',
-          'Begin monitoring your blood sugar levels daily',
-          'Review your diet and consider consulting with a nutritionist',
-          'Increase water intake and monitor for symptoms',
-          'Consider joining a diabetes support group'
-        ];
-      }
-      
-      // Create the final analysis result
-      const analysisResult = {
-        userId: currentUser.uid,
-        timestamp: new Date(),
-        riskScore,
-        riskLevel,
-        audioUrl: audioDownloadURL,
-        detectedKeywords,
-        diabetesRiskFactors,
-        recommendations,
-        type: 'diabetes'
-      };
-      
-      // Save the analysis to Firestore
-      const docRef = await addDoc(collection(db, 'voiceAnalyses'), analysisResult);
-      setAnalysisProgress(100);
-      
-      // Add the new analysis to the list
-      setAnalyses([
-        {
-          id: docRef.id,
-          ...analysisResult
-        },
-        ...analyses
-      ]);
-      
-      // Clear the recording
-      setAudioBlob(null);
-      setAudioURL('');
-      
-    } catch (error) {
-      console.error('Error analyzing voice:', error);
-      setError('Failed to analyze voice recording: ' + error.message);
-    } finally {
-      setAnalyzing(false);
-      setAnalysisProgress(0);
-    }
-  };
+  // Voice and glucose analysis functions removed as requested
   
   // Delete an analysis
   const handleDeleteAnalysis = async (analysisId) => {
@@ -715,22 +530,29 @@ function VoiceAnalysis() {
         </div>
         
         <div className="recording-actions">
+          {/* Simple placeholder button that doesn't trigger analysis */}
           <button 
-            className="btn btn-primary btn-analyze"
-            onClick={analyzeVoice}
-            disabled={!audioBlob || recording || analyzing}
+            className="btn btn-secondary" 
+            onClick={() => {
+              if (audioBlob) {
+                setAnalyzing(true);
+                setAnalysisProgress(10);
+                
+                // Just simulate progress and then stop
+                setTimeout(() => {
+                  setAnalysisProgress(100);
+                  setTimeout(() => {
+                    setAnalyzing(false);
+                    setAnalysisProgress(0);
+                  }, 500);
+                }, 1000);
+              } else {
+                setError('No recording available');
+              }
+            }}
+            style={{ display: 'none' }} // Hide this button
           >
-            <FaChartLine className="btn-icon" />
-            {analyzing ? t.analyzing : t.analyze}
-          </button>
-          
-          <button 
-            className="btn btn-secondary btn-analyze"
-            onClick={analyzeGlucoseLevel}
-            disabled={!audioBlob || !recordingDone || recording || analyzing}
-          >
-            <FaChartLine className="btn-icon" />
-            {t.glucoseAnalysis}
+            Analyze
           </button>
         </div>
         

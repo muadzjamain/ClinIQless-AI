@@ -28,7 +28,7 @@ function Sidebar({ isOpen }) {
   const menuLabels = {
     en: {
       dashboard: 'Dashboard',
-      voiceAnalysis: 'Voice Analysis',
+      voiceAnalysis: 'Glucose Checker',
       healthTracker: 'Health Tracker',
       doctorAdvice: 'Doctor Advice',
       conversations: 'Conversations',
@@ -38,7 +38,7 @@ function Sidebar({ isOpen }) {
     },
     ms: {
       dashboard: 'Papan Pemuka',
-      voiceAnalysis: 'Analisis Suara',
+      voiceAnalysis: 'Pemeriksa Glukosa',
       healthTracker: 'Penjejak Kesihatan',
       doctorAdvice: 'Nasihat Doktor',
       conversations: 'Perbualan',
