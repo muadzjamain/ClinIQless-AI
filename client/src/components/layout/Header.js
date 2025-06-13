@@ -41,7 +41,7 @@ function Header({ toggleSidebar }) {
         
         <Link to="/" className="logo">
           <img 
-            src="/logo.png" 
+            src="/assets/ClinIQLess_AI_LogoOnly_NoBG.png" 
             alt="ClinIQless AI" 
             className="logo-img" 
           />
