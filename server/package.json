@@ -13,7 +13,6 @@
     "@google-cloud/storage": "^6.11.0",
     "@google-cloud/vertexai": "^0.2.1",
     "@google-ai/generativelanguage": "^0.2.0",
-    "@google/generative-ai": "^0.2.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",

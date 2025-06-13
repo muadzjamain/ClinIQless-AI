@@ -1,6 +1,7 @@
 const { VertexAI } = require('@google-cloud/vertexai');
 const speech = require('@google-cloud/speech');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { TextServiceClient } = require('@google-ai/generativelanguage').v1beta;
+const { GoogleAuth } = require('google-auth-library');
 
 // Initialize Vertex AI
 const vertexAI = new VertexAI({
@@ -12,8 +13,12 @@ const vertexAI = new VertexAI({
 const speechClient = new speech.SpeechClient();
 
 // Initialize Gemini API client
+const MODEL_NAME = 'models/gemini-1.5-pro';
 const API_KEY = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY);
+
+const textServiceClient = new TextServiceClient({
+  authClient: new GoogleAuth().fromAPIKey(API_KEY),
+});
 
 /**
  * Analyzes voice recording for diabetes risk prediction
@@ -176,166 +181,71 @@ const predictDiabetesRisk = async (voiceFeatures) => {
 };
 
 /**
- * Analyzes skin image for skin type detection using Gemini API
+ * Analyzes skin image for skin type detection
  * @param {Buffer} imageBuffer - Image file buffer
- * @param {string} mimeType - Image MIME type (e.g., 'image/jpeg')
  * @returns {Object} Analysis results
  */
-const analyzeSkin = async (imageBuffer, mimeType = 'image/jpeg') => {
+const analyzeSkin = async (imageBuffer) => {
   try {
-    // Convert image buffer to base64
-    const base64Image = imageBuffer.toString('base64');
+    // In a real implementation, this would use a trained computer vision model
+    // For this prototype, we'll simulate a prediction
     
-    // Use the Gemini API client initialized at the top of the file
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    // Placeholder for skin analysis results
+    const skinTypes = ['oily', 'dry', 'combination', 'normal'];
+    const randomIndex = Math.floor(Math.random() * skinTypes.length);
+    const skinType = skinTypes[randomIndex];
     
-    // Create a prompt for skin analysis
-    const prompt = `Analyze this facial skin image and provide detailed information about:
-    1. Skin type (dry, oily, combination, normal, sensitive)
-    2. Skin conditions (acne, sensitivity, dryness, etc.)
-    3. Skin metrics (moisture, oiliness, sensitivity, pigmentation, wrinkles, pores) on a scale of 0-100
-    4. Overall skin health score (0-100)
-    5. Estimated skin age
+    // Generate skincare recommendations using Gemini API
+    const recommendations = await generateSkincareRecommendations(skinType);
     
-    Format your response as a JSON object with the following structure:
-    {
-      "overallScore": number,
-      "skinAge": number,
-      "skinType": {
-        "type": string,
-        "score": number,
-        "description": string
-      },
-      "conditions": [
-        {
-          "name": string,
-          "severity": string,
-          "probability": number,
-          "active": boolean
-        }
-      ],
-      "metrics": {
-        "moisture": number,
-        "oiliness": number,
-        "sensitivity": number,
-        "pigmentation": number,
-        "wrinkles": number,
-        "pores": number
-      }
-    }`;
-    
-    // Create parts with text and image
-    const imagePart = {
-      inlineData: {
-        data: base64Image,
-        mimeType: mimeType
-      }
-    };
-    
-    // Generate content with the image and prompt
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
-    
-    // Extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from Gemini API');
-    }
-    
-    // Parse the skin analysis results
-    const skinAnalysis = JSON.parse(jsonMatch[0]);
-    
-    // Generate skincare recommendations based on the analysis
-    const recommendations = await generateSkincareRecommendations(skinAnalysis);
-    
-    // Combine analysis and recommendations
     return {
-      ...skinAnalysis,
+      skinType,
+      confidence: 0.85,
       recommendations,
       timestamp: new Date().toISOString()
     };
   } catch (error) {
     console.error('Skin analysis error:', error);
-    
-    // Provide a fallback response if the API fails
-    const fallbackSkinType = {
-      type: 'combination',
-      score: 75,
-      description: 'Your skin appears to have both oily and dry areas.'
-    };
-    
-    const fallbackAnalysis = {
-      overallScore: 70,
-      skinAge: 30,
-      skinType: fallbackSkinType,
-      conditions: [
-        { name: 'Sensitivity', severity: 'mild', probability: 65, active: true },
-        { name: 'Dryness', severity: 'moderate', probability: 80, active: true }
-      ],
-      metrics: {
-        moisture: 65,
-        oiliness: 70,
-        sensitivity: 60,
-        pigmentation: 75,
-        wrinkles: 65,
-        pores: 70
-      }
-    };
-    
-    // Get recommendations for the fallback skin type
-    const recommendations = await generateSkincareRecommendations(fallbackAnalysis);
-    
-    return {
-      ...fallbackAnalysis,
-      recommendations,
-      timestamp: new Date().toISOString(),
-      error: error.message,
-      note: 'Using fallback analysis due to API error'
-    };
+    throw new Error(`Failed to analyze skin: ${error.message}`);
   }
 };
 
 /**
- * Generates skincare recommendations based on skin analysis using Gemini API
- * @param {Object} skinAnalysis - Detected skin analysis results
+ * Generates skincare recommendations based on skin type using Gemini API
+ * @param {string} skinType - Detected skin type
  * @returns {Object} Skincare recommendations
  */
-const generateSkincareRecommendations = async (skinAnalysis) => {
+const generateSkincareRecommendations = async (skinType) => {
   try {
-    // Initialize the Gemini API client
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-    
-    // Create a detailed prompt based on the full skin analysis
-    const prompt = `Based on the following skin analysis data, provide personalized skincare recommendations:
-    ${JSON.stringify(skinAnalysis, null, 2)}
-    
-    Format your response as JSON with the following structure:
+    const prompt = `Generate personalized skincare recommendations for ${skinType} skin type. 
+    Include morning routine, evening routine, and recommended ingredients to look for. 
+    Format the response as JSON with the following structure:
     {
-      "skincare": {
-        "morning": [list of steps as strings],
-        "evening": [list of steps as strings]
-      },
-      "products": [
-        { "name": "Product Name", "description": "Product description and benefits" }
-      ],
-      "lifestyle": [list of lifestyle recommendations as strings]
+      "morningRoutine": [list of steps],
+      "eveningRoutine": [list of steps],
+      "recommendedIngredients": [list of ingredients with benefits],
+      "productsToAvoid": [list of products or ingredients to avoid]
     }`;
     
-    // Generate content with the prompt
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const result = await textServiceClient.generateText({
+      model: MODEL_NAME,
+      prompt: {
+        text: prompt,
+      },
+    });
     
-    // Extract JSON from the generated text
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid recommendation format from Gemini API');
+    const generatedText = result[0]?.candidates[0]?.output;
+    
+    if (!generatedText) {
+      throw new Error('No recommendations generated');
     }
     
-    // Parse the recommendations
+    // Extract JSON from the generated text
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Invalid recommendation format');
+    }
+    
     const recommendations = JSON.parse(jsonMatch[0]);
     return recommendations;
   } catch (error) {
@@ -375,33 +285,37 @@ const generateSkincareRecommendations = async (skinAnalysis) => {
  */
 const summarizeConversation = async (transcription) => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-    
-    const prompt = `Summarize the following doctor-patient conversation.
-    Extract key medical information, diagnoses, treatments, and follow-up instructions.
+    const prompt = `Summarize the following doctor-patient conversation. 
+    Extract key points, medical advice, medication instructions, and follow-up actions.
+    Also identify any medical terms that might need explanation.
     Format the response as JSON with the following structure:
     {
       "summary": "brief summary of the conversation",
-      "diagnoses": [list of potential diagnoses mentioned],
-      "treatments": [list of treatments or medications prescribed],
-      "followUp": [list of follow-up instructions],
-      "keyPoints": [list of other important points from the conversation]
+      "keyPoints": [list of key points],
+      "medicalAdvice": [list of advice given],
+      "medications": [list of medications with instructions],
+      "followUp": [list of follow-up actions],
+      "medicalTerms": [list of medical terms with explanations]
     }
     
-    Conversation transcription:
+    Conversation transcript:
     ${transcription}`;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const result = await textServiceClient.generateText({
+      model: MODEL_NAME,
+      prompt: {
+        text: prompt,
+      },
+    });
     
-    const text = response.text();
+    const generatedText = result[0]?.candidates[0]?.output;
     
-    if (!text) {
+    if (!generatedText) {
       throw new Error('No summary generated');
     }
     
     // Extract JSON from the generated text
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Invalid summary format');
     }
@@ -421,8 +335,6 @@ const summarizeConversation = async (transcription) => {
  */
 const evaluateDoctorAdvice = async (advice) => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-    
     const prompt = `Evaluate the reliability of the following medical advice given by a doctor.
     Check for consistency with general medical guidelines and best practices.
     Do NOT provide medical advice, just evaluate the given advice.
@@ -437,17 +349,21 @@ const evaluateDoctorAdvice = async (advice) => {
     Doctor's advice:
     ${advice}`;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const result = await textServiceClient.generateText({
+      model: MODEL_NAME,
+      prompt: {
+        text: prompt,
+      },
+    });
     
-    const text = response.text();
+    const generatedText = result[0]?.candidates[0]?.output;
     
-    if (!text) {
+    if (!generatedText) {
       throw new Error('No evaluation generated');
     }
     
     // Extract JSON from the generated text
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Invalid evaluation format');
     }
@@ -468,24 +384,34 @@ const evaluateDoctorAdvice = async (advice) => {
  */
 const processChatbotQuery = async (query, language = 'en') => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const systemPrompt = language === 'en' 
+      ? `You are a helpful health assistant specializing in diabetes information. 
+         Provide accurate, evidence-based information about diabetes. 
+         Keep responses concise and informative. 
+         If you don't know something, say so rather than making up information.`
+      : `Anda adalah pembantu kesihatan yang pakar dalam maklumat diabetes. 
+         Berikan maklumat yang tepat dan berasaskan bukti tentang diabetes. 
+         Pastikan jawapan ringkas dan informatif. 
+         Jika anda tidak tahu sesuatu, katakan dengan jujur dan jangan cipta maklumat.`;
     
-    const prompt = `You are a helpful healthcare assistant providing information about diabetes and general health.
-    Respond to the following query in ${language === 'en' ? 'English' : 'Malay'} language.
-    Keep your response concise, informative, and helpful.
+    const prompt = `${systemPrompt}
     
     User query: ${query}`;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const result = await textServiceClient.generateText({
+      model: MODEL_NAME,
+      prompt: {
+        text: prompt,
+      },
+    });
     
-    const text = response.text();
+    const response = result[0]?.candidates[0]?.output;
     
-    if (!text) {
-      return 'I apologize, but I couldn\'t process your query. Please try again.';
+    if (!response) {
+      throw new Error('No response generated');
     }
     
-    return text.trim();
+    return response;
   } catch (error) {
     console.error('Chatbot query processing error:', error);
     

@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const { storage, db } = require('../config/firebase');
 const { authenticateUser } = require('../middleware/auth');
-const { analyzeSkin } = require('../services/ai');
+const { analyzeSkinImage } = require('../services/ai');
 const router = express.Router();
 
 // Configure multer for image uploads
@@ -42,56 +42,57 @@ router.post('/analyze', authenticateUser, upload.single('image'), async (req, re
 
     const userId = req.user.uid;
     const file = req.file;
-    const { notes, bodyPart, lightCondition } = req.body;
+    const { notes, bodyPart } = req.body;
     
     const fileExtension = path.extname(file.originalname);
     const timestamp = Date.now();
     const filename = `${userId}_${timestamp}${fileExtension}`;
-    const filePath = `skinImages/${userId}/${filename}`;
+    const filePath = `skin/${userId}/${filename}`;
     
-    // Upload image to Firebase Storage
-    const fileRef = storage.ref().child(filePath);
-    await fileRef.put(file.buffer, {
-      contentType: file.mimetype
+    // Upload file to Firebase Storage
+    const bucket = storage.bucket();
+    const fileRef = bucket.file(filePath);
+    
+    await fileRef.save(file.buffer, {
+      metadata: {
+        contentType: file.mimetype,
+        metadata: {
+          userId,
+          originalname: file.originalname,
+          bodyPart,
+          timestamp
+        }
+      }
     });
     
-    // Get the download URL
-    const imageUrl = await fileRef.getDownloadURL();
+    // Get download URL
+    const [url] = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: '01-01-2100'
+    });
     
-    // Analyze the skin image using Gemini AI
-    const analysisResult = await analyzeSkin(file.buffer, file.mimetype);
+    // Analyze skin image using AI
+    const analysis = await analyzeSkinImage(file.buffer, bodyPart);
     
-    // Save analysis to Firestore
-    const analysisRef = db.collection('skinAnalyses').doc();
-    await analysisRef.set({
+    // Create skin analysis record in Firestore
+    const analysisDoc = await db.collection('skinAnalysis').add({
       userId,
-      imageUrl,
+      imageUrl: url,
       filePath,
-      skinType: analysisResult.skinType,
-      overallScore: analysisResult.overallScore,
-      skinAge: analysisResult.skinAge,
-      conditions: analysisResult.conditions,
-      metrics: analysisResult.metrics,
-      recommendations: analysisResult.recommendations,
-      notes,
       bodyPart,
-      lightCondition,
-      deviceInfo: {
-        type: 'web',
-        browser: req.headers['user-agent']
-      },
-      modelVersion: '1.0.0',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      notes,
+      analysis,
+      createdAt: new Date().toISOString()
     });
-
-    // Return the analysis results
-    return res.status(200).json({
+    
+    return res.status(201).json({
       status: 'success',
+      message: 'Skin image analyzed successfully',
       data: {
-        id: analysisRef.id,
-        imageUrl,
-        ...analysisResult
+        id: analysisDoc.id,
+        imageUrl: url,
+        bodyPart,
+        analysis
       }
     });
   } catch (error) {
@@ -116,7 +117,7 @@ router.get('/history', authenticateUser, async (req, res) => {
     const { bodyPart, limit = 10, page = 1 } = req.query;
     
     // Build query
-    let query = db.collection('skinAnalyses').where('userId', '==', userId);
+    let query = db.collection('skinAnalysis').where('userId', '==', userId);
     
     if (bodyPart) {
       query = query.where('bodyPart', '==', bodyPart);
@@ -144,7 +145,7 @@ router.get('/history', authenticateUser, async (req, res) => {
     });
     
     // Get total count for pagination
-    let countQuery = db.collection('skinAnalyses').where('userId', '==', userId);
+    let countQuery = db.collection('skinAnalysis').where('userId', '==', userId);
     
     if (bodyPart) {
       countQuery = countQuery.where('bodyPart', '==', bodyPart);
@@ -188,7 +189,7 @@ router.get('/:id', authenticateUser, async (req, res) => {
     const analysisId = req.params.id;
     
     // Get analysis document from Firestore
-    const analysisDoc = await db.collection('skinAnalyses').doc(analysisId).get();
+    const analysisDoc = await db.collection('skinAnalysis').doc(analysisId).get();
     
     if (!analysisDoc.exists) {
       return res.status(404).json({

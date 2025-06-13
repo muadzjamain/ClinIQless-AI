@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getFirestore, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { FaCamera, FaUpload, FaInfoCircle, FaSpinner, FaTimes, FaHistory } from 'react-icons/fa';
-import CameraCapture from '../components/skin/CameraCapture';
-import ResultsView from '../components/skin/ResultsView';
+import { FaCamera, FaUpload, FaImage, FaInfoCircle, FaSpinner, FaCheck, FaTimes } from 'react-icons/fa';
 import './SkinAnalysis.css';
 
 function SkinAnalysis() {
@@ -13,14 +11,17 @@ function SkinAnalysis() {
   const { theme } = useTheme();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [pastAnalyses, setPastAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeView, setActiveView] = useState('main'); // 'main', 'camera', 'results', 'history'
+  const [showCamera, setShowCamera] = useState(false);
   
   const fileInputRef = useRef();
+  const videoRef = useRef();
+  const canvasRef = useRef();
   
   const db = getFirestore();
   const storage = getStorage();
@@ -82,83 +83,235 @@ function SkinAnalysis() {
     }
   };
   
-  // Use the appropriate language labels
-  const currentLabels = labels[userLanguage] || labels.en;
+  // Use the appropriate language
+  const t = labels[userLanguage] || labels.en;
   
-  // Fetch past analyses from Firestore
-  const fetchPastAnalyses = React.useCallback(async () => {
-    try {
-      setLoading(true);
+  // Fetch past skin analyses
+  useEffect(() => {
+    async function fetchPastAnalyses() {
+      if (!currentUser) return;
       
-      const q = query(
-        collection(db, 'skinAnalyses'),
-        where('userId', '==', currentUser.uid),
-        orderBy('timestamp', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const analyses = [];
-      
-      querySnapshot.forEach((doc) => {
-        analyses.push({
+      try {
+        const analysesQuery = query(
+          collection(db, 'skinAnalyses'),
+          where('userId', '==', currentUser.uid),
+          orderBy('timestamp', 'desc')
+        );
+        
+        const analysesSnapshot = await getDocs(analysesQuery);
+        const analysesData = analysesSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        });
-      });
-      
-      setPastAnalyses(analyses);
-    } catch (err) {
-      console.error('Error fetching past analyses:', err);
-    } finally {
-      setLoading(false);
+        }));
+        
+        setPastAnalyses(analysesData);
+      } catch (error) {
+        console.error('Error fetching past analyses:', error);
+      } finally {
+        setLoading(false);
+      }
     }
+    
+    fetchPastAnalyses();
   }, [currentUser, db]);
   
-  // Load past analyses
-  useEffect(() => {
-    if (currentUser) {
-      fetchPastAnalyses();
-    } else {
-      setPastAnalyses([]);
-      setLoading(false);
-    }
-  }, [currentUser, fetchPastAnalyses]);
-  
-  // Handle file upload
-  const handleImageChange = (e) => {
+  // Handle file selection
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    setError('');
-    
-    // Check file type
+    // Check if file is an image
     if (!file.type.match('image.*')) {
-      setError(labels[userLanguage].errorFileType);
+      setError('Please select an image file');
       return;
     }
     
-    // Check file size (max 5MB)
+    // Check if file size is less than 5MB
     if (file.size > 5 * 1024 * 1024) {
-      setError(labels[userLanguage].errorFileSize);
+      setError('Image size should be less than 5MB');
       return;
     }
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
     
     setImage(file);
+    setImagePreview(URL.createObjectURL(file));
     setAnalysisResult(null);
+    setError('');
   };
   
-  // Reset image
+  // Handle camera access
+  const startCamera = async () => {
+    setShowCamera(true);
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setError(t.errorCamera);
+      setShowCamera(false);
+    }
+  };
+  
+  // Handle taking photo
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    if (!video || !canvas) return;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert canvas to blob
+    canvas.toBlob((blob) => {
+      setImage(blob);
+      setImagePreview(canvas.toDataURL('image/jpeg'));
+      
+      // Stop camera stream
+      const stream = video.srcObject;
+      if (stream) {
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+      }
+      
+      setShowCamera(false);
+      setAnalysisResult(null);
+    }, 'image/jpeg', 0.8);
+  };
+  
+  // Handle analyze image
+  const analyzeImage = async () => {
+    if (!image) {
+      setError('Please upload or take a photo first');
+      return;
+    }
+    
+    setUploading(true);
+    setError('');
+    
+    try {
+      // Upload image to Firebase Storage
+      const storageRef = ref(storage, `skinImages/${currentUser.uid}/${Date.now()}`);
+      await uploadBytes(storageRef, image);
+      const imageUrl = await getDownloadURL(storageRef);
+      
+      setUploading(false);
+      setAnalyzing(true);
+      
+      // In a real implementation, we would call an AI API for analysis
+      // For demo purposes, simulate an analysis result after a delay
+      setTimeout(async () => {
+        // Generate a simulated analysis result
+        const result = generateSimulatedResult();
+        
+        // Save analysis to Firestore
+        const analysisData = {
+          userId: currentUser.uid,
+          imageUrl,
+          result,
+          timestamp: new Date()
+        };
+        
+        const docRef = await addDoc(collection(db, 'skinAnalyses'), analysisData);
+        
+        // Set analysis result and update past analyses
+        setAnalysisResult(result);
+        setPastAnalyses([
+          {
+            id: docRef.id,
+            ...analysisData
+          },
+          ...pastAnalyses
+        ]);
+        
+        setAnalyzing(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      setError(t.errorAnalysis);
+      setUploading(false);
+      setAnalyzing(false);
+    }
+  };
+  
+  // Generate simulated analysis result
+  const generateSimulatedResult = () => {
+    const conditions = [
+      {
+        name: 'Acne',
+        confidence: Math.floor(70 + Math.random() * 30),
+        recommendations: [
+          'Keep the affected area clean with a gentle cleanser',
+          'Avoid touching or picking at the affected area',
+          'Consider over-the-counter products containing benzoyl peroxide or salicylic acid',
+          'If severe, consult a dermatologist for prescription treatment'
+        ]
+      },
+      {
+        name: 'Eczema',
+        confidence: Math.floor(60 + Math.random() * 30),
+        recommendations: [
+          'Use moisturizers regularly to prevent dry skin',
+          'Avoid harsh soaps and irritants',
+          'Apply cool compresses to relieve itching',
+          'Consider using over-the-counter hydrocortisone cream for mild symptoms'
+        ]
+      },
+      {
+        name: 'Psoriasis',
+        confidence: Math.floor(65 + Math.random() * 30),
+        recommendations: [
+          'Keep skin moisturized with fragrance-free products',
+          'Avoid triggers like stress and skin injuries',
+          'Consider light therapy under medical supervision',
+          'Consult a dermatologist for prescription treatments'
+        ]
+      },
+      {
+        name: 'Contact Dermatitis',
+        confidence: Math.floor(75 + Math.random() * 25),
+        recommendations: [
+          'Identify and avoid the irritant or allergen',
+          'Use cool compresses to relieve symptoms',
+          'Apply over-the-counter hydrocortisone cream',
+          'If severe or persistent, consult a healthcare provider'
+        ]
+      },
+      {
+        name: 'Rosacea',
+        confidence: Math.floor(65 + Math.random() * 30),
+        recommendations: [
+          'Avoid triggers like spicy foods, alcohol, and extreme temperatures',
+          'Use gentle, non-abrasive cleansers',
+          'Apply broad-spectrum sunscreen daily',
+          'Consider prescription treatments from a dermatologist'
+        ]
+      }
+    ];
+    
+    // Randomly select a condition
+    const selectedCondition = conditions[Math.floor(Math.random() * conditions.length)];
+    
+    return selectedCondition;
+  };
+  
+  // Reset image and analysis
   const resetImage = () => {
     setImage(null);
     setImagePreview('');
     setAnalysisResult(null);
+    setError('');
     
     // Clear file input
     if (fileInputRef.current) {
@@ -166,263 +319,253 @@ function SkinAnalysis() {
     }
   };
   
-  // Reset analysis
-  const resetAnalysis = () => {
-    setAnalysisResult(null);
-    setImagePreview('');
-    setImage(null);
-    setActiveView('main');
+  // Format date
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
+    return new Intl.DateTimeFormat(userLanguage === 'ms' ? 'ms-MY' : 'en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
   };
   
-  // Handle camera capture
-  const handleCameraStart = () => {
-    setError('');
-    setActiveView('camera');
-  };
-  
-  const handleCameraCapture = (capturedImage) => {
-    setImage(capturedImage);
-    setImagePreview(URL.createObjectURL(capturedImage));
-    setActiveView('main');
-  };
-  
-  const handleCameraCancel = () => {
-    setActiveView('main');
-  };
-  
-  // Handle analyze image
-  const analyzeImage = async () => {
-    if (!image) return;
-    
-    try {
-      setAnalyzing(true);
-      setError('');
-      
-      // Upload image to Firebase Storage
-      const storageRef = ref(storage, `skinImages/${currentUser.uid}/${Date.now()}`);
-      await uploadBytes(storageRef, image);
-      
-      // Get download URL
-      const downloadURL = await getDownloadURL(storageRef);
-      
-      // Create form data for API request
-      const formData = new FormData();
-      formData.append('image', image);
-      formData.append('imageUrl', downloadURL);
-      formData.append('lightCondition', 'indoor'); // Could be detected or selected by user
-      formData.append('bodyPart', 'face');
-      formData.append('notes', '');
-      
-      // Get the user's ID token for authentication
-      const idToken = await currentUser.getIdToken();
-      
-      // Call the backend API for skin analysis
-      const response = await fetch('/api/skin/analyze', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: formData
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to analyze skin image');
-      }
-      
-      // Get the analysis result
-      const analysisData = await response.json();
-      const result = analysisData.data;
-      
-      // Add user information to the result
-      result.userName = userProfile?.displayName || currentUser.email;
-      result.imageUrl = downloadURL;
-      
-      // Convert conditions format for compatibility with existing UI
-      result.skinConditions = result.conditions?.map(c => ({
-        name: c.name,
-        active: c.active,
-        type: c.name.toLowerCase().replace(' ', '-')
-      })) || [];
-      
-      // For compatibility with existing code
-      result.skinScore = result.overallScore;
-      result.recommendation = 'Based on our analysis, we recommend following the personalized skincare routine provided.';
-      
-      // Set the analysis result
-      setAnalysisResult(result);
-      
-      // No need to save to Firestore again as the backend already did that
-      
-      // Show results view
-      setActiveView('results');
-      
-      // Refresh past analyses
-      fetchPastAnalyses();
-      
-    } catch (err) {
-      console.error('Error analyzing image:', err);
-      setError(currentLabels.errorAnalysis);
-    } finally {
-      setAnalyzing(false);
+  // Get confidence level class and text
+  const getConfidenceLevel = (score) => {
+    if (score >= 80) {
+      return { class: 'high', text: t.high };
+    } else if (score >= 60) {
+      return { class: 'medium', text: t.medium };
+    } else {
+      return { class: 'low', text: t.low };
     }
   };
   
-  // View a past analysis
-  const viewPastAnalysis = (analysis) => {
-    setAnalysisResult(analysis);
-    setImagePreview(analysis.imageUrl);
-    setActiveView('results');
-  };
-  
   return (
-    <div className={`skin-analysis-container ${theme}`}>
-      {activeView === 'main' && (
-        <>
-          <div className="skin-analysis-header">
-            <h1>{currentLabels.title}</h1>
-            <p className="description">
-              <FaInfoCircle className="info-icon" />
-              {currentLabels.description}
-            </p>
+    <div className="page-container">
+      <div className="page-header">
+        <h1 className="page-title">
+          <FaCamera className="title-icon" />
+          {t.title}
+        </h1>
+        <p className="page-description">{t.description}</p>
+      </div>
+      
+      {/* Disclaimer */}
+      <div className={`disclaimer ${theme}`}>
+        <FaInfoCircle className="disclaimer-icon" />
+        <p>{t.disclaimer}</p>
+      </div>
+      
+      {/* Error message */}
+      {error && (
+        <div className={`alert alert-error ${theme}`}>
+          <FaTimes className="alert-icon" />
+          {error}
+          <button className="alert-close" onClick={() => setError('')}>×</button>
+        </div>
+      )}
+      
+      {/* Camera View */}
+      {showCamera && (
+        <div className={`camera-container ${theme}`}>
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline
+            className="camera-view"
+          ></video>
+          
+          <div className="camera-controls">
+            <button 
+              className="btn btn-primary btn-capture"
+              onClick={capturePhoto}
+            >
+              <FaCamera />
+              {t.capturePhoto}
+            </button>
+            
+            <button 
+              className="btn btn-outline"
+              onClick={() => setShowCamera(false)}
+            >
+              {t.retake}
+            </button>
           </div>
           
-          {loading ? (
-            <div className="loading-container">
-              <FaSpinner className="spinner" />
-              <p>{currentLabels.loading}</p>
-            </div>
-          ) : error ? (
-            <div className="error-container">
-              {error && <p className="error-message">{error}</p>}
-              <FaTimes className="error-icon" />
-              <p>{currentLabels.intro}</p>
-            </div>
-          ) : (
-            <div className="skin-analysis-content">
-              {!imagePreview ? (
-                <div className="upload-section">
-                  <div className="upload-options">
-                    <button className="upload-option" onClick={() => fileInputRef.current.click()}>
-                      <FaUpload className="option-icon" />
-                      <span>{currentLabels.uploadImage}</span>
+          <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+        </div>
+      )}
+      
+      {/* Image Upload and Analysis */}
+      {!showCamera && (
+        <div className={`analysis-container ${theme}`}>
+          <div className="image-section">
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img 
+                  src={imagePreview} 
+                  alt="Skin" 
+                  className="image-preview"
+                />
+                
+                {!analysisResult && (
+                  <div className="image-actions">
+                    <button 
+                      className="btn btn-outline"
+                      onClick={resetImage}
+                    >
+                      {t.uploadAnother}
                     </button>
                     
-                    <button className="upload-option" onClick={handleCameraStart}>
-                      <FaCamera className="option-icon" />
-                      <span>{currentLabels.takePhoto}</span>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={analyzeImage}
+                      disabled={uploading || analyzing}
+                    >
+                      {uploading ? (
+                        <FaSpinner className="spinner-icon" />
+                      ) : analyzing ? (
+                        <>
+                          <FaSpinner className="spinner-icon" />
+                          {t.analyzing}
+                        </>
+                      ) : (
+                        <>
+                          <FaImage />
+                          {t.analyzeImage}
+                        </>
+                      )}
                     </button>
                   </div>
-                  
+                )}
+              </div>
+            ) : (
+              <div className="upload-options">
+                <div className="upload-option">
+                  <button 
+                    className="btn btn-primary btn-upload"
+                    onClick={() => fileInputRef.current.click()}
+                  >
+                    <FaUpload />
+                    {t.uploadImage}
+                  </button>
                   <input
                     type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
                     ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
                     style={{ display: 'none' }}
                   />
                 </div>
-              ) : analysisResult ? (
-                <div className="result-section">
-                  <div className="result-header">
-                    <h2>Analysis Results</h2>
-                    <button className="btn-primary" onClick={resetAnalysis}>
-                      {currentLabels.uploadAnother}
-                    </button>
-                  </div>
-                  
-                  <ResultsView 
-                    result={analysisResult} 
-                    onShare={() => console.log('Share result')} 
-                    onSave={() => console.log('Save result')} 
-                  />
+                
+                <div className="upload-option">
+                  <button 
+                    className="btn btn-primary btn-camera"
+                    onClick={startCamera}
+                  >
+                    <FaCamera />
+                    {t.takePhoto}
+                  </button>
                 </div>
-              ) : (
-                <div className="upload-progress">
-                  {analyzing ? (
-                    <div className="analyzing-indicator">
-                      <FaSpinner className="spinner" /> {currentLabels.analyzing}
-                    </div>
-                  ) : null}
-                  <div className="preview-section">
-                    <div className="preview-image">
-                      <img src={imagePreview} alt="Preview" />
-                    </div>
-                    
-                    <div className="preview-actions">
-                      <button className="btn-secondary" onClick={resetImage}>
-                        {currentLabels.uploadAnother}
-                      </button>
-                      
-                      <button 
-                        className="btn-primary" 
-                        onClick={analyzeImage}
-                        disabled={analyzing}
-                      >
-                        {analyzing ? (
-                          <>
-                            <FaSpinner className="spinner" />
-                            {currentLabels.analyzing}
-                          </>
-                        ) : (
-                          currentLabels.analyzeImage
-                        )}
-                      </button>
-                    </div>
-                  </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Analysis Result */}
+          {analysisResult && (
+            <div className="result-section">
+              <div className="result-header">
+                <h2 className="condition-name">{analysisResult.name}</h2>
+                
+                <div className={`confidence-badge ${getConfidenceLevel(analysisResult.confidence).class}`}>
+                  <span className="confidence-score">{analysisResult.confidence}%</span>
+                  <span className="confidence-label">{t.confidence}</span>
                 </div>
-              )}
+              </div>
               
-              {/* Past analyses section */}
-              {pastAnalyses.length > 0 && (
-                <div className="past-analyses-section">
-                  <h2>
-                    <FaHistory className="section-icon" />
-                    {currentLabels.pastAnalyses}
-                  </h2>
-                  <div className="past-analyses-list">
-                    {pastAnalyses.map((analysis, index) => (
-                      <div key={index} className="past-analysis-item" onClick={() => viewPastAnalysis(analysis)}>
-                        <div className="past-analysis-image">
-                          <img src={analysis.imageUrl} alt={`Past analysis ${index + 1}`} />
-                        </div>
-                        <div className="past-analysis-info">
-                          <p className="past-analysis-date">
-                            {new Date(analysis.timestamp).toLocaleDateString()}
-                          </p>
-                          <p className="past-analysis-type">{analysis.skinType}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="recommendations">
+                <h3>{t.recommendation}</h3>
+                <ul className="recommendation-list">
+                  {analysisResult.recommendations.map((rec, index) => (
+                    <li key={index}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="result-actions">
+                <button 
+                  className="btn btn-primary"
+                  onClick={resetImage}
+                >
+                  {t.uploadAnother}
+                </button>
+              </div>
             </div>
           )}
-          
-          <div className="disclaimer">
-            <FaInfoCircle className="disclaimer-icon" />
-            <p>{labels[userLanguage].disclaimer}</p>
-          </div>
-        </>
+        </div>
       )}
       
-      {activeView === 'camera' && (
-        <CameraCapture 
-          onCapture={handleCameraCapture} 
-          onCancel={handleCameraCancel} 
-        />
-      )}
+      {/* Past Analyses */}
+      <div className="section-header">
+        <h2>{t.pastAnalyses}</h2>
+      </div>
       
-      {activeView === 'results' && analysisResult && (
-        <ResultsView 
-          result={analysisResult} 
-          onShare={() => console.log('Share result')} 
-          onSave={() => {
-            setActiveView('main');
-            console.log('Save result');
-          }} 
-        />
+      {loading ? (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>{t.loading}</p>
+        </div>
+      ) : (
+        <div className="past-analyses">
+          {pastAnalyses.length > 0 ? (
+            pastAnalyses.map(analysis => {
+              // Add null checks for analysis.result
+              if (!analysis || !analysis.result) {
+                return null; // Skip rendering this item if result is missing
+              }
+              
+              const confidence = analysis.result.confidence ? getConfidenceLevel(analysis.result.confidence) : { class: 'medium', text: t.medium };
+              
+              return (
+                <div key={analysis.id} className={`analysis-card ${theme}`}>
+                  <div className="analysis-image">
+                    <img src={analysis.imageUrl || ''} alt="Skin" />
+                  </div>
+                  
+                  <div className="analysis-content">
+                    <div className="analysis-header">
+                      <h3 className="condition-name">{analysis.result.name || 'Unknown'}</h3>
+                      
+                      <div className={`confidence-badge ${confidence.class}`}>
+                        <span className="confidence-score">{analysis.result.confidence || 0}%</span>
+                      </div>
+                    </div>
+                    
+                    <div className="analysis-recommendations">
+                      <ul>
+                        {(analysis.result.recommendations || []).slice(0, 2).map((rec, index) => (
+                          <li key={index}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="analysis-date">
+                      {formatDate(analysis.timestamp)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className={`empty-state ${theme}`}>
+              <FaCamera className="empty-icon" />
+              <p>{t.noPastAnalyses}</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
