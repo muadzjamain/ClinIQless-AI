@@ -34,6 +34,22 @@
   flex-shrink: 0;
 }
 
+.info-box.light.btn-success {
+  background-color: #28a745;
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+.btn-success:disabled {
+  background-color: #6c757d;
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 /* Recording Section */
 .recording-section {
   padding: 2rem;
@@ -43,6 +59,10 @@
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  width: 100%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .recording-section.light {
@@ -171,6 +191,110 @@
 .recording-actions {
   display: flex;
   justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Analysis Progress */
+.analysis-progress {
+  width: 100%;
+  max-width: 500px;
+  margin-top: 1.5rem;
+}
+
+/* Glucose Results */
+.glucose-results {
+  width: 100%;
+  max-width: 500px;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.glucose-results.light {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.glucose-results.dark {
+  background-color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.glucose-results h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.glucose-values {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.glucose-value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.glucose-value .value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.glucose-value .unit {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-top: 0.25rem;
+}
+
+.glucose-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.status-indicator.normal {
+  background-color: #28a745;
+}
+
+.status-indicator.pre-diabetic {
+  background-color: #ffc107;
+}
+
+.status-indicator.diabetic {
+  background-color: #dc3545;
+}
+
+.status-text {
+  font-weight: 600;
+}
+
+.glucose-results.normal .value {
+  color: #28a745;
+}
+
+.glucose-results.pre-diabetic .value {
+  color: #ffc107;
+}
+
+.glucose-results.diabetic .value {
+  color: #dc3545;
 }
 
 /* Section Header */

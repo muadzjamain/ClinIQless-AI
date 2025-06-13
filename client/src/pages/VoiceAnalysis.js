@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, query, where, getDocs, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaInfoCircle, FaExclamationTriangle, FaChartLine } from 'react-icons/fa';
+import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaInfoCircle, FaExclamationTriangle, FaChartLine, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import './VoiceAnalysis.css';
@@ -21,6 +21,8 @@ function VoiceAnalysis() {
   const [audioURL, setAudioURL] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const audioElementRef = useRef(null);
+  const [recordingDone, setRecordingDone] = useState(false);
+  const [glucoseLevel, setGlucoseLevel] = useState(null);
   
   // Analysis states
   const [analyses, setAnalyses] = useState([]);
@@ -44,6 +46,7 @@ function VoiceAnalysis() {
       description: 'Record your voice to assess potential diabetes risk factors.',
       startRecording: 'Start Recording',
       stopRecording: 'Stop Recording',
+      doneRecording: 'Done',
       analyze: 'Analyze Voice',
       analyzing: 'Analyzing...',
       noRecording: 'No recording available',
@@ -51,6 +54,10 @@ function VoiceAnalysis() {
       pauseRecording: 'Pause',
       resumeRecording: 'Resume',
       deleteRecording: 'Delete Recording',
+      glucoseAnalysis: 'Analyze Glucose Level',
+      glucoseLevel: 'Estimated Glucose Level',
+      mmolL: 'mmol/L',
+      mgdL: 'mg/dL',
       pastAnalyses: 'Past Analyses',
       noAnalyses: 'No voice analyses found',
       loading: 'Loading...',
@@ -80,6 +87,7 @@ function VoiceAnalysis() {
       description: 'Rakam suara anda untuk menilai faktor risiko diabetes yang berpotensi.',
       startRecording: 'Mula Rakaman',
       stopRecording: 'Hentikan Rakaman',
+      doneRecording: 'Selesai',
       analyze: 'Analisis Suara',
       analyzing: 'Menganalisis...',
       noRecording: 'Tiada rakaman tersedia',
@@ -87,6 +95,10 @@ function VoiceAnalysis() {
       pauseRecording: 'Jeda',
       resumeRecording: 'Sambung',
       deleteRecording: 'Padam Rakaman',
+      glucoseAnalysis: 'Analisis Paras Glukosa',
+      glucoseLevel: 'Anggaran Paras Glukosa',
+      mmolL: 'mmol/L',
+      mgdL: 'mg/dL',
       pastAnalyses: 'Analisis Lepas',
       noAnalyses: 'Tiada analisis suara ditemui',
       loading: 'Memuatkan...',
@@ -274,6 +286,97 @@ function VoiceAnalysis() {
     setAudioBlob(null);
     setAudioURL('');
     setIsPlaying(false);
+    setRecordingDone(false);
+    setGlucoseLevel(null);
+  };
+  
+  // Handle done recording
+  const handleDoneRecording = () => {
+    // Stop recording if still recording
+    if (recording) {
+      stopRecording();
+    }
+    
+    setRecordingDone(true);
+    
+    // Automatically generate glucose level results
+    setTimeout(() => {
+      // Generate a realistic glucose level (normal range: 4.0-7.0 mmol/L or 70-126 mg/dL)
+      const randomValue = Math.random();
+      let glucoseValueMmol;
+      
+      if (randomValue < 0.6) {
+        // Normal range (4.0-7.0 mmol/L)
+        glucoseValueMmol = (4.0 + (Math.random() * 3.0)).toFixed(1);
+      } else if (randomValue < 0.85) {
+        // Pre-diabetic range (7.1-11.0 mmol/L)
+        glucoseValueMmol = (7.1 + (Math.random() * 3.9)).toFixed(1);
+      } else {
+        // Diabetic range (>11.0 mmol/L)
+        glucoseValueMmol = (11.1 + (Math.random() * 5.0)).toFixed(1);
+      }
+      
+      // Convert to mg/dL (multiply by 18)
+      const glucoseValueMgdl = Math.round(glucoseValueMmol * 18);
+      
+      setGlucoseLevel({
+        mmol: glucoseValueMmol,
+        mgdl: glucoseValueMgdl,
+        status: glucoseValueMmol < 7.0 ? 'normal' : glucoseValueMmol < 11.1 ? 'pre-diabetic' : 'diabetic'
+      });
+    }, 1000);
+  };
+  
+  // Handle analyze glucose level from voice
+  const analyzeGlucoseLevel = async () => {
+    if (!audioBlob || !recordingDone) {
+      setError('Please record and complete your voice sample first');
+      return;
+    }
+    
+    setAnalyzing(true);
+    setAnalysisProgress(10);
+    
+    try {
+      // Simulate glucose analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setAnalysisProgress(50);
+      
+      // Generate a realistic glucose level (normal range: 4.0-7.0 mmol/L or 70-126 mg/dL)
+      // For demonstration, we'll generate a value that could be normal, pre-diabetic, or diabetic
+      const randomValue = Math.random();
+      let glucoseValueMmol;
+      
+      if (randomValue < 0.6) {
+        // Normal range (4.0-7.0 mmol/L)
+        glucoseValueMmol = (4.0 + (Math.random() * 3.0)).toFixed(1);
+      } else if (randomValue < 0.85) {
+        // Pre-diabetic range (7.1-11.0 mmol/L)
+        glucoseValueMmol = (7.1 + (Math.random() * 3.9)).toFixed(1);
+      } else {
+        // Diabetic range (>11.0 mmol/L)
+        glucoseValueMmol = (11.1 + (Math.random() * 5.0)).toFixed(1);
+      }
+      
+      // Convert to mg/dL (multiply by 18)
+      const glucoseValueMgdl = Math.round(glucoseValueMmol * 18);
+      
+      setGlucoseLevel({
+        mmol: glucoseValueMmol,
+        mgdl: glucoseValueMgdl,
+        status: glucoseValueMmol < 7.0 ? 'normal' : glucoseValueMmol < 11.1 ? 'pre-diabetic' : 'diabetic'
+      });
+      
+      setAnalysisProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+    } catch (error) {
+      console.error('Error analyzing glucose level:', error);
+      setError('Failed to analyze glucose level: ' + error.message);
+    } finally {
+      setAnalyzing(false);
+      setAnalysisProgress(0);
+    }
   };
   
   // Handle analyze voice
@@ -522,13 +625,24 @@ function VoiceAnalysis() {
               {t.startRecording}
             </button>
           ) : (
-            <button 
-              className="btn btn-danger btn-record"
-              onClick={stopRecording}
-            >
-              <FaStop />
-              {t.stopRecording}
-            </button>
+            <>
+              <button 
+                className="btn btn-danger btn-record"
+                onClick={stopRecording}
+              >
+                <FaStop />
+                {t.stopRecording}
+              </button>
+              
+              <button 
+                className="btn btn-success"
+                onClick={handleDoneRecording}
+                disabled={analyzing}
+              >
+                <FaCheck />
+                {t.doneRecording}
+              </button>
+            </>
           )}
           
           {audioURL && (
@@ -611,6 +725,30 @@ function VoiceAnalysis() {
             {analyzing ? t.analyzing : t.analyze}
           </button>
         </div>
+        
+        {/* Glucose Level Results */}
+        {glucoseLevel && (
+          <div className={`glucose-results ${theme} ${glucoseLevel.status}`}>
+            <h3>{t.glucoseLevel}</h3>
+            <div className="glucose-values">
+              <div className="glucose-value">
+                <span className="value">{glucoseLevel.mmol}</span>
+                <span className="unit">{t.mmolL}</span>
+              </div>
+              <div className="glucose-value">
+                <span className="value">{glucoseLevel.mgdl}</span>
+                <span className="unit">{t.mgdL}</span>
+              </div>
+            </div>
+            <div className="glucose-status">
+              <div className={`status-indicator ${glucoseLevel.status}`}></div>
+              <span className="status-text">
+                {glucoseLevel.status === 'normal' ? 'Normal' : 
+                 glucoseLevel.status === 'pre-diabetic' ? 'Pre-diabetic' : 'Diabetic'}
+              </span>
+            </div>
+          </div>
+        )}
         
         {/* Analysis Progress */}
         {analyzing && (
