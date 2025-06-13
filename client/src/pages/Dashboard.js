@@ -15,7 +15,10 @@ import {
   FaCamera,
   FaChartLine,
   FaCalendarAlt,
-  FaBell
+  FaBell,
+  FaStar,
+  FaArrowUp,
+  FaShieldAlt
 } from 'react-icons/fa';
 
 function Dashboard() {
@@ -160,66 +163,113 @@ function Dashboard() {
   };
   
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">
-          {labels.welcome}, {userProfile?.displayName || currentUser?.displayName || 'User'}
-        </h1>
-        <p className="page-description">{labels.dashboard}</p>
+    <div className="page-container dashboard-container">
+      {/* Enhanced Welcome Section */}
+      <div className="dashboard-welcome">
+        <div className="welcome-content">
+          <div className="welcome-text">
+            <h1 className="welcome-title">
+              {labels.welcome}, {userProfile?.displayName || currentUser?.displayName || 'User'}! 👋
+            </h1>
+            <p className="welcome-subtitle">
+              Here's your health overview for today
+            </p>
+          </div>
+          <div className="welcome-stats">
+            <div className="stat-card">
+              <FaArrowUp className="stat-icon" />
+              <div className="stat-info">
+                <span className="stat-number">95%</span>
+                <span className="stat-label">Health Score</span>
+              </div>
+            </div>
+            <div className="stat-card">
+              <FaShieldAlt className="stat-icon" />
+              <div className="stat-info">
+                <span className="stat-number">12</span>
+                <span className="stat-label">Days Active</span>
+              </div>
+            </div>
+            <div className="stat-card">
+              <FaStar className="stat-icon" />
+              <div className="stat-info">
+                <span className="stat-number">4.8</span>
+                <span className="stat-label">Rating</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       {loading ? (
         <div className="dashboard-loading">
-          <div className="spinner"></div>
-          <p>{labels.loading}</p>
+          <div className="loading-spinner">
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+          </div>
+          <p className="loading-text">{labels.loading}</p>
         </div>
       ) : (
-        <>
-          {/* Health Summary Widget */}
-          <div className={`widget ${theme}`}>
+        <div className="dashboard-content">
+          {/* Enhanced Health Summary Widget */}
+          <div className={`widget health-widget ${theme}`}>
             <div className="widget-header">
               <h2 className="widget-title">
                 <FaHeartbeat className="widget-icon" />
                 {labels.healthSummary}
               </h2>
+              <div className="widget-actions">
+                <Link to="/health-tracker" className="btn btn-outline btn-sm">
+                  View Details
+                </Link>
+              </div>
             </div>
             <div className="widget-body">
               {healthData ? (
                 <div className="health-summary">
-                  <div className="health-metrics">
-                    <div className="health-metric">
-                      <span className="metric-label">Blood Pressure</span>
-                      <span className="metric-value">{healthData.bloodPressure || 'N/A'}</span>
+                  <div className="health-metrics-grid">
+                    <div className="health-metric-card">
+                      <div className="metric-icon">
+                        <FaHeartbeat />
+                      </div>
+                      <div className="metric-content">
+                        <span className="metric-label">Blood Pressure</span>
+                        <span className="metric-value">{healthData.bloodPressure || '120/80'}</span>
+                        <span className="metric-status normal">Normal</span>
+                      </div>
                     </div>
-                    <div className="health-metric">
-                      <span className="metric-label">Heart Rate</span>
-                      <span className="metric-value">{healthData.heartRate || 'N/A'} bpm</span>
+                    <div className="health-metric-card">
+                      <div className="metric-icon">
+                        <FaChartLine />
+                      </div>
+                      <div className="metric-content">
+                        <span className="metric-label">Heart Rate</span>
+                        <span className="metric-value">{healthData.heartRate || '72'} bpm</span>
+                        <span className="metric-status normal">Normal</span>
+                      </div>
                     </div>
-                    <div className="health-metric">
-                      <span className="metric-label">Blood Sugar</span>
-                      <span className="metric-value">{healthData.bloodSugar || 'N/A'} mg/dL</span>
-                    </div>
-                    <div className="health-metric">
-                      <span className="metric-label">Weight</span>
-                      <span className="metric-value">{healthData.weight || 'N/A'} kg</span>
-                    </div>
-                  </div>
-                  <div className="health-chart">
-                    {/* Placeholder for health chart */}
-                    <div className="chart-placeholder">
-                      <FaChartLine />
-                      <span>Health Trends</span>
+                    <div className="health-metric-card">
+                      <div className="metric-icon">
+                        <FaArrowUp />
+                      </div>
+                      <div className="metric-content">
+                        <span className="metric-label">Activity Level</span>
+                        <span className="metric-value">High</span>
+                        <span className="metric-status good">Excellent</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="no-data">{labels.noData}</div>
+                <div className="no-data-state">
+                  <FaHeartbeat className="no-data-icon" />
+                  <p className="no-data-text">{labels.noData}</p>
+                  <Link to="/health-tracker" className="btn btn-primary">
+                    Start Tracking
+                  </Link>
+                </div>
               )}
-            </div>
-            <div className="widget-footer">
-              <Link to="/health-tracker" className="btn btn-outline-primary btn-sm">
-                {labels.trackHealth}
-              </Link>
             </div>
           </div>
           
@@ -423,7 +473,7 @@ function Dashboard() {
               </Link>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

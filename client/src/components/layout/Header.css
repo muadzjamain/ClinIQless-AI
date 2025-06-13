@@ -2,22 +2,26 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 1.5rem;
-  height: 70px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0 2rem;
+  height: 80px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
   z-index: 1000;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 }
 
 .app-header.light {
-  background-color: #ffffff;
-  color: #333333;
+  background: rgba(255, 255, 255, 0.95);
+  color: #374151;
 }
 
 .app-header.dark {
-  background-color: #1a1a1a;
-  color: #f8f9fa;
+  background: rgba(26, 26, 26, 0.95);
+  color: #f3f4f6;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
 }
 
 .header-left {
@@ -28,13 +32,27 @@
 .sidebar-toggle {
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   cursor: pointer;
-  margin-right: 1rem;
+  margin-right: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   color: inherit;
+  padding: 0.75rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(67, 97, 238, 0.1);
+  color: #4361ee;
+  transform: scale(1.05);
+}
+
+.app-header.dark .sidebar-toggle:hover {
+  background: rgba(123, 148, 255, 0.1);
+  color: #7b94ff;
 }
 
 .logo {
@@ -42,11 +60,17 @@
   align-items: center;
   text-decoration: none;
   color: inherit;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.02);
 }
 
 .logo-img {
-  height: 40px;
-  margin-right: 0.5rem;
+  height: 50px;
+  margin-right: 0.75rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .logo-text {
