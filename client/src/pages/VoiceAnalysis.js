@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-<<<<<<< HEAD
-import { FaMicrophone, FaStop, FaPlay, FaPause, FaInfoCircle, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
-=======
 import { db } from '../firebase';
 import { collection, addDoc, query, where, getDocs, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaInfoCircle, FaExclamationTriangle, FaChartLine } from 'react-icons/fa';
->>>>>>> parent of fbd15b6 (Voice analyses part 1)
+import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaInfoCircle, FaExclamationTriangle, FaChartLine, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import './VoiceAnalysis.css';
@@ -25,17 +21,20 @@ function VoiceAnalysis() {
   const [audioURL, setAudioURL] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const audioElementRef = useRef(null);
-<<<<<<< HEAD
-
+  const [recordingDone, setRecordingDone] = useState(false);
   const [glucoseLevel, setGlucoseLevel] = useState(null);
-=======
->>>>>>> parent of fbd15b6 (Voice analyses part 1)
   
   // Analysis states
+  const [analyses, setAnalyses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [analysisToDelete, setAnalysisToDelete] = useState(null);
   
+  // Firebase storage reference
+  const storage = getStorage();
   
   // Get user's preferred language
   const userLanguage = userProfile?.language || 'en';
@@ -47,6 +46,7 @@ function VoiceAnalysis() {
       description: 'Record your voice to assess potential diabetes risk factors.',
       startRecording: 'Start Recording',
       stopRecording: 'Stop Recording',
+      doneRecording: 'Done',
       analyze: 'Analyze Voice',
       analyzing: 'Analyzing...',
       noRecording: 'No recording available',
@@ -54,6 +54,10 @@ function VoiceAnalysis() {
       pauseRecording: 'Pause',
       resumeRecording: 'Resume',
       deleteRecording: 'Delete Recording',
+      glucoseAnalysis: 'Analyze Glucose Level',
+      glucoseLevel: 'Estimated Glucose Level',
+      mmolL: 'mmol/L',
+      mgdL: 'mg/dL',
       pastAnalyses: 'Past Analyses',
       noAnalyses: 'No voice analyses found',
       loading: 'Loading...',
@@ -83,6 +87,7 @@ function VoiceAnalysis() {
       description: 'Rakam suara anda untuk menilai faktor risiko diabetes yang berpotensi.',
       startRecording: 'Mula Rakaman',
       stopRecording: 'Hentikan Rakaman',
+      doneRecording: 'Selesai',
       analyze: 'Analisis Suara',
       analyzing: 'Menganalisis...',
       noRecording: 'Tiada rakaman tersedia',
@@ -90,6 +95,10 @@ function VoiceAnalysis() {
       pauseRecording: 'Jeda',
       resumeRecording: 'Sambung',
       deleteRecording: 'Padam Rakaman',
+      glucoseAnalysis: 'Analisis Paras Glukosa',
+      glucoseLevel: 'Anggaran Paras Glukosa',
+      mmolL: 'mmol/L',
+      mgdL: 'mg/dL',
       pastAnalyses: 'Analisis Lepas',
       noAnalyses: 'Tiada analisis suara ditemui',
       loading: 'Memuatkan...',
@@ -119,9 +128,35 @@ function VoiceAnalysis() {
   // Use the appropriate language
   const t = labels[userLanguage] || labels.en;
   
-  // Component mount effect
+  // Fetch past voice analyses
   useEffect(() => {
-    // No need to fetch past analyses anymore
+    async function fetchVoiceAnalyses() {
+      if (!currentUser) return;
+      
+      try {
+        const analysesQuery = query(
+          collection(db, 'voiceAnalyses'),
+          where('userId', '==', currentUser.uid),
+          orderBy('timestamp', 'desc')
+        );
+        
+        const analysesSnapshot = await getDocs(analysesQuery);
+        const analysesData = analysesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp.toDate()
+        }));
+        
+        setAnalyses(analysesData);
+      } catch (error) {
+        console.error('Error fetching voice analyses:', error);
+        setError('Failed to load past analyses');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchVoiceAnalyses();
   }, [currentUser]);
   
   // Initialize audio recording when component mounts
@@ -131,15 +166,20 @@ function VoiceAnalysis() {
       // Clean up any MediaRecorder resources
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.ondataavailable = null;
-      if (recordingTimer) {
-        clearInterval(recordingTimer);
+        mediaRecorderRef.current.onstop = null;
       }
       
+      // Clear any audio URL object
       if (audioURL) {
         URL.revokeObjectURL(audioURL);
       }
+      
+      // Clear any recording timer
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+      }
     };
-  }, [recordingTimer, audioURL]);
+  }, [audioURL, recordingTimer]);
   
   // Handle start recording
   const startRecording = async () => {
@@ -246,71 +286,97 @@ function VoiceAnalysis() {
     setAudioBlob(null);
     setAudioURL('');
     setIsPlaying(false);
-<<<<<<< HEAD
+    setRecordingDone(false);
     setGlucoseLevel(null);
-    setError('');
   };
   
-  // Handle done recording - now using handleDoneButtonClick instead
-  
-  // Handle the "Done" button click - analyze glucose level based on voice recording
-  const handleDoneButtonClick = async () => {
+  // Handle done recording
+  const handleDoneRecording = () => {
+    // Stop recording if still recording
     if (recording) {
-      await stopRecording();
+      stopRecording();
     }
     
-    // No need to check for audioBlob - we want mock output without actual recording
+    setRecordingDone(true);
     
-    setAnalyzing(true);
-    setError('');
-    
-    try {
-      // Simulate analysis progress
-      const progressInterval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            return 100;
-          }
-          return prev + 5;
-        });
-      }, 150);
+    // Automatically generate glucose level results
+    setTimeout(() => {
+      // Generate a realistic glucose level (normal range: 4.0-7.0 mmol/L or 70-126 mg/dL)
+      const randomValue = Math.random();
+      let glucoseValueMmol;
       
-      // Simulate AI analysis delay - shorter for better user experience
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate a random glucose level between 4.0 and 14.0 mmol/L
-      const glucoseValueMmol = (Math.random() * 10 + 4).toFixed(1);
-      const glucoseValueMgDl = Math.round(glucoseValueMmol * 18); // Convert to mg/dL
-      
-      // Determine glucose status
-      let statusClass;
-      
-      if (glucoseValueMmol < 5.6) {
-        statusClass = 'normal';
-      } else if (glucoseValueMmol < 7.0) {
-        statusClass = 'medium';
+      if (randomValue < 0.6) {
+        // Normal range (4.0-7.0 mmol/L)
+        glucoseValueMmol = (4.0 + (Math.random() * 3.0)).toFixed(1);
+      } else if (randomValue < 0.85) {
+        // Pre-diabetic range (7.1-11.0 mmol/L)
+        glucoseValueMmol = (7.1 + (Math.random() * 3.9)).toFixed(1);
       } else {
-        statusClass = 'high';
+        // Diabetic range (>11.0 mmol/L)
+        glucoseValueMmol = (11.1 + (Math.random() * 5.0)).toFixed(1);
       }
+      
+      // Convert to mg/dL (multiply by 18)
+      const glucoseValueMgdl = Math.round(glucoseValueMmol * 18);
       
       setGlucoseLevel({
         mmol: glucoseValueMmol,
-        mgdl: glucoseValueMgDl,
-        status: statusClass
+        mgdl: glucoseValueMgdl,
+        status: glucoseValueMmol < 7.0 ? 'normal' : glucoseValueMmol < 11.1 ? 'pre-diabetic' : 'diabetic'
+      });
+    }, 1000);
+  };
+  
+  // Handle analyze glucose level from voice
+  const analyzeGlucoseLevel = async () => {
+    if (!audioBlob || !recordingDone) {
+      setError('Please record and complete your voice sample first');
+      return;
+    }
+    
+    setAnalyzing(true);
+    setAnalysisProgress(10);
+    
+    try {
+      // Simulate glucose analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setAnalysisProgress(50);
+      
+      // Generate a realistic glucose level (normal range: 4.0-7.0 mmol/L or 70-126 mg/dL)
+      // For demonstration, we'll generate a value that could be normal, pre-diabetic, or diabetic
+      const randomValue = Math.random();
+      let glucoseValueMmol;
+      
+      if (randomValue < 0.6) {
+        // Normal range (4.0-7.0 mmol/L)
+        glucoseValueMmol = (4.0 + (Math.random() * 3.0)).toFixed(1);
+      } else if (randomValue < 0.85) {
+        // Pre-diabetic range (7.1-11.0 mmol/L)
+        glucoseValueMmol = (7.1 + (Math.random() * 3.9)).toFixed(1);
+      } else {
+        // Diabetic range (>11.0 mmol/L)
+        glucoseValueMmol = (11.1 + (Math.random() * 5.0)).toFixed(1);
+      }
+      
+      // Convert to mg/dL (multiply by 18)
+      const glucoseValueMgdl = Math.round(glucoseValueMmol * 18);
+      
+      setGlucoseLevel({
+        mmol: glucoseValueMmol,
+        mgdl: glucoseValueMgdl,
+        status: glucoseValueMmol < 7.0 ? 'normal' : glucoseValueMmol < 11.1 ? 'pre-diabetic' : 'diabetic'
       });
       
-      clearInterval(progressInterval);
       setAnalysisProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
       
     } catch (error) {
       console.error('Error analyzing glucose level:', error);
       setError('Failed to analyze glucose level: ' + error.message);
     } finally {
       setAnalyzing(false);
-      // Don't reset progress immediately to ensure results are visible
-      setTimeout(() => setAnalysisProgress(0), 2000);
-=======
+      setAnalysisProgress(0);
+    }
   };
   
   // Handle analyze voice
@@ -510,7 +576,6 @@ function VoiceAnalysis() {
       return { text: t.mediumRisk, class: 'medium' };
     } else {
       return { text: t.highRisk, class: 'high' };
->>>>>>> parent of fbd15b6 (Voice analyses part 1)
     }
   };
   
@@ -544,50 +609,12 @@ function VoiceAnalysis() {
         <div className="diabetes-prompt">
           <h3>{t.diabetesPrompt}</h3>
           <div className={`diabetes-passage ${theme}`}>
-            <p>{t.diabetesPassage}</p>
+            <p>"{t.diabetesPassage}"</p>
           </div>
           <p className="time-limit-note">{t.recordingTimeLimit}</p>
         </div>
         
         <div className="recording-controls">
-<<<<<<< HEAD
-          {recording ? (
-            <>
-              <button 
-                className="btn btn-primary btn-stop"
-                onClick={stopRecording}
-              >
-                <FaStop />
-                {t.stopRecording}
-              </button>
-              <button 
-                className="btn btn-success btn-done"
-                onClick={handleDoneButtonClick}
-              >
-                <FaCheck />
-                {t.doneRecording}
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                className="btn btn-primary btn-record"
-                onClick={startRecording}
-                disabled={analyzing}
-              >
-                <FaMicrophone />
-                {t.startRecording}
-              </button>
-              <button 
-                className="btn btn-success btn-done"
-                onClick={handleDoneButtonClick}
-                disabled={analyzing}
-              >
-                <FaCheck />
-                {t.doneRecording}
-              </button>
-            </>
-=======
           {!recording ? (
             <button 
               className="btn btn-primary btn-record"
@@ -598,102 +625,17 @@ function VoiceAnalysis() {
               {t.startRecording}
             </button>
           ) : (
-            <button 
-              className="btn btn-danger btn-record"
-              onClick={stopRecording}
-            >
-              <FaStop />
-              {t.stopRecording}
-            </button>
->>>>>>> parent of fbd15b6 (Voice analyses part 1)
-          )}
-          
-          {audioURL && (
             <>
               <button 
-                className="btn btn-outline btn-play"
-                onClick={togglePlayback}
-                disabled={recording || analyzing}
-              >
-                {isPlaying ? <FaPause /> : <FaPlay />}
-                {isPlaying ? t.pauseRecording : t.playRecording}
-              </button>
-              
-              <button
-                className="btn btn-outline btn-delete"
-                onClick={deleteRecording}
-                disabled={recording || analyzing}
-              >
-                <FaExclamationTriangle />
-                {t.deleteRecording}
-              </button>
-            </>
-          )}
-        </div>
-        
-        {/* Hidden audio element for playback */}
-        <audio 
-          ref={audioElementRef} 
-          src={audioURL} 
-          onEnded={handlePlaybackEnded} 
-          style={{ display: 'none' }} 
-        />
-        
-        <div className="recording-visualizer">
-          {recording ? (
-            <div className="recording-active">
-              <div className="recording-waves">
-                <div className="wave"></div>
-                <div className="wave"></div>
-                <div className="wave"></div>
-                <div className="wave"></div>
-                <div className="wave"></div>
-              </div>
-              <div className="recording-time">
-                <span>{t.timeRemaining} {60 - recordingTime} {t.seconds}</span>
-              </div>
-            </div>
-          ) : null}
-        {/* Diabetes-specific prompt */}
-        <div className="diabetes-prompt">
-          <h3>{t.diabetesPrompt}</h3>
-          <div className={`diabetes-passage ${theme}`}>
-            <p>"{t.diabetesPassage}"</p>
-          </div>
-          <p className="time-limit-note">{t.recordingTimeLimit}</p>
-        </div>
-        
-        <div className="recording-controls">
-          {recording ? (
-            <>
-              <button 
-                className="btn btn-primary btn-stop"
+                className="btn btn-danger btn-record"
                 onClick={stopRecording}
               >
                 <FaStop />
                 {t.stopRecording}
               </button>
               <button 
-                className="btn btn-success btn-done"
-                onClick={handleDoneButtonClick}
-              >
-                <FaCheck />
-                {t.doneRecording}
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                className="btn btn-primary btn-record"
-                onClick={startRecording}
-                disabled={analyzing}
-              >
-                <FaMicrophone />
-                {t.startRecording}
-              </button>
-              <button 
-                className="btn btn-success btn-done"
-                onClick={handleDoneButtonClick}
+                className="btn btn-success"
+                onClick={handleDoneRecording}
                 disabled={analyzing}
               >
                 <FaCheck />
@@ -718,7 +660,7 @@ function VoiceAnalysis() {
                 onClick={deleteRecording}
                 disabled={recording || analyzing}
               >
-                <FaExclamationTriangle />
+                <FaTrash />
                 {t.deleteRecording}
               </button>
             </>
@@ -749,7 +691,7 @@ function VoiceAnalysis() {
             </div>
           ) : (
             <div className="recording-inactive">
-              {audioURL && (
+              {audioURL ? (
                 <div className="audio-waveform">
                   {/* Waveform display */}
                   <div className="waveform-container">
@@ -765,14 +707,33 @@ function VoiceAnalysis() {
                     ))}
                   </div>
                 </div>
+              ) : (
+                <span>{t.noRecording}</span>
               )}
             </div>
           )}
         </div>
         
-        {/* Removed Analyze Voice button */}
+        <div className="recording-actions">
+          <button 
+            className="btn btn-primary btn-analyze"
+            onClick={analyzeVoice}
+            disabled={!audioBlob || recording || analyzing}
+          >
+            <FaChartLine className="btn-icon" />
+            {analyzing ? t.analyzing : t.analyze}
+          </button>
+          
+          <button 
+            className="btn btn-secondary btn-analyze"
+            onClick={analyzeGlucoseLevel}
+            disabled={!audioBlob || !recordingDone || recording || analyzing}
+          >
+            <FaChartLine className="btn-icon" />
+            {t.glucoseAnalysis}
+          </button>
+        </div>
         
-<<<<<<< HEAD
         {/* Glucose Level Results */}
         {glucoseLevel && (
           <div className={`glucose-results ${theme} ${glucoseLevel.status}`}>
@@ -791,14 +752,12 @@ function VoiceAnalysis() {
               <div className={`status-indicator ${glucoseLevel.status}`}></div>
               <span className="status-text">
                 {glucoseLevel.status === 'normal' ? 'Normal' : 
-                 glucoseLevel.status === 'medium' ? 'Pre-diabetic' : 'Diabetic'}
+                 glucoseLevel.status === 'pre-diabetic' ? 'Pre-diabetic' : 'Diabetic'}
               </span>
             </div>
           </div>
         )}
         
-=======
->>>>>>> parent of fbd15b6 (Voice analyses part 1)
         {/* Analysis Progress */}
         {analyzing && (
           <div className="analysis-progress">
@@ -817,12 +776,136 @@ function VoiceAnalysis() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-export default VoiceAnalysis;
+      
+      {/* Past Analyses Section */}
+      <div className="section-header">
+        <h2>{t.pastAnalyses}</h2>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay">
+          <div className={`modal-content ${theme}`}>
+            <h3>{t.deleteConfirm}</h3>
+            <div className="modal-actions">
+              <button 
+                className="btn btn-danger" 
+                onClick={confirmDeleteAnalysis}
+              >
+                <FaTrash /> {t.yes}
+              </button>
+              <button 
+                className="btn btn-outline" 
+                onClick={cancelDeleteAnalysis}
+              >
+                {t.no}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {loading ? (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>{t.loading}</p>
+        </div>
+      ) : (
+        <div className="analyses-list">
+          {analyses.length > 0 ? (
+            analyses.map(analysis => {
+              // Get risk level and text
+              const risk = analysis.riskLevel ? 
+                { 
+                  class: analysis.riskLevel, 
+                  text: analysis.riskLevel === 'low' ? t.lowRisk : 
+                         analysis.riskLevel === 'medium' ? t.mediumRisk : t.highRisk 
+                } : 
+                getRiskLevelFromScore(analysis.riskScore);
+              
+              return (
+                <div key={analysis.id} className={`analysis-card ${theme}`}>
+                  <div className="analysis-header">
+                    <div className="analysis-date">
+                      {formatDate(analysis.timestamp)}
+                    </div>
+                    <div className={`risk-badge ${risk.class}`}>
+                      <span className="risk-score">{analysis.riskScore}</span>
+                      <span className="risk-label">{risk.text}</span>
+                    </div>
+                    <button 
+                      className="btn-icon-only" 
+                      onClick={() => handleDeleteAnalysis(analysis.id)}
+                      aria-label="Delete analysis"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                  
+                  <div className="analysis-body">
+                    {/* Risk Factors Section */}
+                    <div className="risk-factors-section">
+                      <h3>{t.riskFactors}</h3>
+                      <ul className="risk-factors-list">
+                        {analysis.diabetesRiskFactors?.familyHistory && (
+                          <li>Family history of diabetes</li>
+                        )}
+                        {analysis.diabetesRiskFactors?.highBloodSugar && (
+                          <li>Potential high blood sugar</li>
+                        )}
+                        {analysis.diabetesRiskFactors?.excessiveThirst && (
+                          <li>Excessive thirst</li>
+                        )}
+                        {analysis.diabetesRiskFactors?.frequentUrination && (
+                          <li>Frequent urination</li>
+                        )}
+                        {analysis.diabetesRiskFactors?.unexplainedWeightLoss && (
+                          <li>Unexplained weight loss</li>
+                        )}
+                        {analysis.diabetesRiskFactors?.fatigue && (
+                          <li>Fatigue</li>
+                        )}
+                        {analysis.diabetesRiskFactors?.blurredVision && (
+                          <li>Blurred vision</li>
+                        )}
+                        {analysis.diabetesRiskFactors?.slowHealing && (
+                          <li>Slow healing wounds</li>
+                        )}
+                      </ul>
+                    </div>
+                    
+                    {/* Recommendations Section */}
+                    <div className="recommendations-section">
+                      <h3>{t.recommendations}</h3>
+                      <ul className="recommendations-list">
+                        {analysis.recommendations.map((rec, index) => (
+                          <li key={index}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  {/* Audio Playback if available */}
+                  {analysis.audioUrl && (
+                    <div className="audio-playback">
+                      <audio 
+                        controls 
+                        src={analysis.audioUrl} 
+                        className="audio-player"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className={`empty-state ${theme}`}>
+              <FaMicrophone className="empty-icon" />
+              <p>{t.noAnalyses}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
