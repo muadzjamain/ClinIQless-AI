@@ -10,8 +10,7 @@ import {
   FaMicrophone, 
   FaHeartbeat, 
   FaUserMd, 
-  FaComments, 
-  FaRobot, 
+  FaComments, /* Still needed for Recent Conversations section */
   FaCamera,
   FaChartLine,
   FaCalendarAlt,
@@ -112,9 +111,9 @@ function Dashboard() {
       recentDoctorAdvice: 'Recent Doctor Advice',
       recentConversations: 'Recent Conversations',
       quickActions: 'Quick Actions',
-      newVoiceAnalysis: 'New Voice Analysis',
+      newVoiceAnalysis: 'Check your Glucose Levels',
       trackHealth: 'Track Health',
-      addDoctorAdvice: 'Add Doctor Advice',
+      addDoctorAdvice: 'Validate Doctor Advice',
       recordConversation: 'Record Conversation',
       chatWithAI: 'Chat with AI',
       analyzeSkin: 'Analyze Skin',
@@ -132,9 +131,9 @@ function Dashboard() {
       recentDoctorAdvice: 'Nasihat Doktor Terkini',
       recentConversations: 'Perbualan Terkini',
       quickActions: 'Tindakan Cepat',
-      newVoiceAnalysis: 'Analisis Suara Baru',
+      newVoiceAnalysis: 'Periksa Tahap Glukosa Anda',
       trackHealth: 'Jejak Kesihatan',
-      addDoctorAdvice: 'Tambah Nasihat Doktor',
+      addDoctorAdvice: 'Sahkan Nasihat Doktor',
       recordConversation: 'Rekod Perbualan',
       chatWithAI: 'Bual dengan AI',
       analyzeSkin: 'Analisis Kulit',
@@ -449,20 +448,6 @@ function Dashboard() {
                   <FaUserMd />
                 </div>
                 <span>{labels.addDoctorAdvice}</span>
-              </Link>
-              
-              <Link to="/conversations" className="quick-action-card">
-                <div className="quick-action-icon">
-                  <FaComments />
-                </div>
-                <span>{labels.recordConversation}</span>
-              </Link>
-              
-              <Link to="/chatbot" className="quick-action-card">
-                <div className="quick-action-icon">
-                  <FaRobot />
-                </div>
-                <span>{labels.chatWithAI}</span>
               </Link>
               
               <Link to="/skin-analysis" className="quick-action-card">
