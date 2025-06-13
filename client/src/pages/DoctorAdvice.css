@@ -90,6 +90,47 @@
   align-items: center;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.recording-buttons {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.recording-buttons .btn-record {
+  flex: 1;
+  justify-content: center;
+}
+
+.upload-recording {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  color: #4361ee;
+}
+
+.upload-recording:hover:not(:disabled) {
+  background-color: #4361ee;
+  color: white;
+}
+
+.upload-recording:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.upload-icon {
+  font-size: 1.2rem;
 }
 
 .btn-record {

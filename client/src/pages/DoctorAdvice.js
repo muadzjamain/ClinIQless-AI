@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { FaUserMd, FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaCheck, FaTimes, FaInfoCircle } from 'react-icons/fa';
+import { FaUserMd, FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaCheck, FaTimes, FaInfoCircle, FaUpload } from 'react-icons/fa';
 import './DoctorAdvice.css';
 
 function DoctorAdvice() {
@@ -40,6 +40,10 @@ function DoctorAdvice() {
       description: 'Record medical advice to validate its accuracy and reliability',
       startRecording: 'Start Recording',
       stopRecording: 'Stop Recording',
+      uploadRecording: 'Upload Recording',
+      selectAudioFile: 'Select audio file',
+      fileSelected: 'File selected',
+      invalidFile: 'Invalid file. Please select an audio file.',
       playRecording: 'Play Recording',
       pauseRecording: 'Pause',
       deleteRecording: 'Delete Recording',
@@ -62,6 +66,10 @@ function DoctorAdvice() {
       description: 'Rakam nasihat perubatan untuk mengesahkan ketepatan dan kebolehpercayaannya',
       startRecording: 'Mula Rakaman',
       stopRecording: 'Hentikan Rakaman',
+      uploadRecording: 'Muat Naik Rakaman',
+      selectAudioFile: 'Pilih fail audio',
+      fileSelected: 'Fail dipilih',
+      invalidFile: 'Fail tidak sah. Sila pilih fail audio.',
       playRecording: 'Main Rakaman',
       pauseRecording: 'Jeda',
       deleteRecording: 'Padam Rakaman',
@@ -200,6 +208,30 @@ function DoctorAdvice() {
     setValidationResult(null);
   };
 
+  // Handle file upload
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Check if file is an audio file
+    if (!file.type.startsWith('audio/')) {
+      setError(t.invalidFile);
+      return;
+    }
+    
+    setError('');
+    setAudioBlob(null);
+    setAudioURL('');
+    setValidationResult(null);
+    
+    // Create blob and URL
+    const blob = new Blob([file], { type: file.type });
+    setAudioBlob(blob);
+    
+    const url = URL.createObjectURL(blob);
+    setAudioURL(url);
+  };
+
   // Mock validation function
   const validateAdvice = async () => {
     if (!audioBlob) {
@@ -336,14 +368,33 @@ function DoctorAdvice() {
       <div className="recording-section">
         <div className="recording-controls">
           {!recording ? (
-            <button 
-              className="btn btn-primary btn-record"
-              onClick={startRecording}
-              disabled={analyzing}
-            >
-              <FaMicrophone />
-              {t.startRecording}
-            </button>
+            <div className="recording-buttons">
+              <button 
+                className="btn btn-primary btn-record"
+                onClick={startRecording}
+                disabled={analyzing || audioURL}
+              >
+                <FaMicrophone />
+                {t.startRecording}
+              </button>
+              
+              <button 
+                className="btn btn-primary btn-record"
+                onClick={() => document.getElementById('audio-upload').click()}
+                disabled={recording || analyzing || audioURL}
+              >
+                <FaUpload />
+                {t.uploadRecording}
+              </button>
+              <input 
+                type="file" 
+                id="audio-upload" 
+                accept="audio/*" 
+                onChange={handleFileUpload} 
+                style={{ display: 'none' }}
+                disabled={recording || analyzing || audioURL}
+              />
+            </div>
           ) : (
             <button 
               className="btn btn-danger btn-record"
