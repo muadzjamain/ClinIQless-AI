@@ -85,7 +85,10 @@ function Sidebar({ isOpen }) {
               className={({ isActive }) => isActive ? 'active' : ''}
             >
               <FaHeartbeat className="nav-icon" />
-              <span className="nav-text">{labels.healthTracker}</span>
+              <span className="nav-text">
+                {labels.healthTracker}
+                <span className="coming-soon-badge">Coming Soon</span>
+              </span>
             </NavLink>
           </li>
           
