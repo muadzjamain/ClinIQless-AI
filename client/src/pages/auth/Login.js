@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import loginBg from '../../assets/LoginBG2.jpeg';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -29,13 +30,30 @@ function Login() {
     }
   }
 
+  const containerStyle = {
+    backgroundImage: `url(${loginBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat'
+  };
+
   return (
-    <div className={`auth-container ${theme}`}>
+    <div className={`auth-container ${theme}`} style={containerStyle}>
       <div className={`auth-card ${theme}`}>
         <div className="auth-header">
-          <img src="/logo.png" alt="ClinIQless AI" className="auth-logo" />
-          <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to your ClinIQless AI account</p>
+          <img 
+            src="/assets/ClinIQLess_AI_Logo_NEW.jpeg" 
+            alt="ClinIQless AI" 
+            className="auth-logo" 
+            style={{ 
+              width: '250px', 
+              height: '250px', 
+              marginBottom: '1rem', 
+              objectFit: 'contain' 
+            }} 
+          />
+
+          <p className="auth-subtitle" style={{ fontSize: '1.2rem', marginBottom: '2rem', fontWeight: '500' }}>Sign in to your ClinIQless AI account</p>
         </div>
         
         <div className="auth-body">
