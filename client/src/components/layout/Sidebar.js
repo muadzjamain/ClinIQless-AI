@@ -10,8 +10,6 @@ import {
   FaMicrophone, 
   FaHeartbeat, 
   FaUserMd, 
-  FaComments, 
-  FaRobot, 
   FaCamera,
   FaUser,
   FaLanguage
@@ -83,16 +81,6 @@ function Sidebar({ isOpen }) {
           
           <li>
             <NavLink 
-              to="/voice-analysis" 
-              className={({ isActive }) => isActive ? 'active' : ''}
-            >
-              <FaMicrophone className="nav-icon" />
-              <span className="nav-text">{labels.voiceAnalysis}</span>
-            </NavLink>
-          </li>
-          
-          <li>
-            <NavLink 
               to="/health-tracker" 
               className={({ isActive }) => isActive ? 'active' : ''}
             >
@@ -113,21 +101,11 @@ function Sidebar({ isOpen }) {
           
           <li>
             <NavLink 
-              to="/conversations" 
+              to="/voice-analysis" 
               className={({ isActive }) => isActive ? 'active' : ''}
             >
-              <FaComments className="nav-icon" />
-              <span className="nav-text">{labels.conversations}</span>
-            </NavLink>
-          </li>
-          
-          <li>
-            <NavLink 
-              to="/chatbot" 
-              className={({ isActive }) => isActive ? 'active' : ''}
-            >
-              <FaRobot className="nav-icon" />
-              <span className="nav-text">{labels.chatbot}</span>
+              <FaMicrophone className="nav-icon" />
+              <span className="nav-text">{labels.voiceAnalysis}</span>
             </NavLink>
           </li>
           
