@@ -7,6 +7,7 @@ function ResultsView({ result, onShare, onSave }) {
   
   if (!result) return null;
   
+  // Handle data from both original and enhanced schema
   const { 
     timestamp, 
     skinScore, 
@@ -14,9 +15,31 @@ function ResultsView({ result, onShare, onSave }) {
     skinType, 
     skinTone,
     skinConditions,
+    conditions,
     metrics,
-    recommendations
+    recommendations,
+    overallScore
   } = result;
+  
+  // Support both schema versions
+  const score = overallScore || skinScore || 0;
+  
+  // Handle skinType being either a string or an object
+  const skinTypeValue = typeof skinType === 'object' ? skinType.type : skinType;
+  const skinTypeDescription = typeof skinType === 'object' ? skinType.description : '';
+  
+  // Handle conditions from both schemas
+  const displayConditions = conditions || skinConditions || [];
+  
+  // Handle metrics with fallback for older structure
+  const displayMetrics = {
+    moisture: metrics?.moisture || metrics?.smoothness || 0,
+    oiliness: metrics?.oiliness || metrics?.elasticity || 0,
+    sensitivity: metrics?.sensitivity || 0,
+    pigmentation: metrics?.pigmentation || metrics?.homogeneity || 0,
+    wrinkles: metrics?.wrinkles || metrics?.fineness || 0,
+    pores: metrics?.pores || 0
+  };
   
   // Format date
   const formatDate = (date) => {
@@ -35,6 +58,7 @@ function ResultsView({ result, onShare, onSave }) {
       case 'oily': return 'oily';
       case 'combination': return 'combination';
       case 'normal': return 'normal';
+      case 'sensitive': return 'sensitive';
       default: return '';
     }
   };
@@ -113,8 +137,8 @@ function ResultsView({ result, onShare, onSave }) {
             
             <div className="score-metrics">
               <div className="score-box">
-                <div className="score-value">{skinScore}</div>
-                <div className="score-label">Skin score</div>
+                <div className="score-number">{score}<span>%</span></div>
+                <div className="score-label">Skin Score</div>
               </div>
               
               <div className="score-box">
@@ -126,15 +150,15 @@ function ResultsView({ result, onShare, onSave }) {
             <div className="metrics-chart">
               <h3>Skin Metrics</h3>
               <div className="hexagon-chart">
-                {/* This would be replaced with an actual chart component in production */}
-                <div className="hexagon-placeholder">
-                  <div className="metric-point" style={{ top: '20%', left: '50%' }}>Smoothness</div>
-                  <div className="metric-point" style={{ top: '35%', left: '85%' }}>Fineness</div>
-                  <div className="metric-point" style={{ top: '65%', left: '85%' }}>Homogeneity</div>
-                  <div className="metric-point" style={{ top: '80%', left: '50%' }}>Moisture</div>
-                  <div className="metric-point" style={{ top: '65%', left: '15%' }}>Sensitivity</div>
-                  <div className="metric-point" style={{ top: '35%', left: '15%' }}>Elasticity</div>
-                </div>
+                {Object.keys(displayMetrics).map(key => (
+                  <div key={key} className="metric">
+                    <div className="metric-label">{key.charAt(0).toUpperCase() + key.slice(1)}</div>
+                    <div className="metric-bar">
+                      <div className="metric-fill" style={{width: `${displayMetrics[key]}%`}}></div>
+                    </div>
+                    <div className="metric-value">{displayMetrics[key]}%</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -150,29 +174,18 @@ function ResultsView({ result, onShare, onSave }) {
             
             <div className="skin-type-section">
               <h4>Type</h4>
-              <div className="skin-type-options">
-                <div className={`skin-type-option ${skinType === 'dry' ? 'selected' : ''}`}>
-                  <div className="type-icon dry-icon"></div>
-                  <span>Dry</span>
-                </div>
-                <div className={`skin-type-option ${skinType === 'normal' ? 'selected' : ''}`}>
-                  <div className="type-icon normal-icon"></div>
-                  <span>Normal</span>
-                </div>
-                <div className={`skin-type-option ${skinType === 'combination' ? 'selected' : ''}`}>
-                  <div className="type-icon combination-icon"></div>
-                  <span>Combination</span>
-                </div>
-                <div className={`skin-type-option ${skinType === 'oily' ? 'selected' : ''}`}>
-                  <div className="type-icon oily-icon"></div>
-                  <span>Oily</span>
+              <div className="skin-type-badge">
+                <div className={`skin-type-icon ${getSkinTypeClass(skinTypeValue)}`}></div>
+                <div className="skin-type-info">
+                  <h3>{skinTypeValue}</h3>
+                  <p>{skinTypeDescription || 'Your primary skin type'}</p>
                 </div>
               </div>
             </div>
             
             <div className="skin-type-tips">
               <h4>Tips</h4>
-              {skinType === 'oily' && (
+              {skinTypeValue === 'oily' && (
                 <div className="tip-content">
                   <p>Oily skin refers to skin with excess sebum. This overproduction of sebum can clog pores and cause acne breakouts.</p>
                   <ol>
@@ -182,7 +195,7 @@ function ResultsView({ result, onShare, onSave }) {
                 </div>
               )}
               
-              {skinType === 'dry' && (
+              {skinTypeValue === 'dry' && (
                 <div className="tip-content">
                   <p>Dry skin produces less sebum than normal skin, leading to a lack of moisture and natural oils needed for skin protection.</p>
                   <ol>
@@ -192,7 +205,7 @@ function ResultsView({ result, onShare, onSave }) {
                 </div>
               )}
               
-              {skinType === 'combination' && (
+              {skinTypeValue === 'combination' && (
                 <div className="tip-content">
                   <p>Combination skin features areas that are dry as well as oily—typically with an oily T-zone and drier cheeks.</p>
                   <ol>
@@ -202,7 +215,7 @@ function ResultsView({ result, onShare, onSave }) {
                 </div>
               )}
               
-              {skinType === 'normal' && (
+              {skinTypeValue === 'normal' && (
                 <div className="tip-content">
                   <p>Normal skin is well-balanced—neither too oily nor too dry—with good circulation and a healthy complexion.</p>
                   <ol>
@@ -221,7 +234,7 @@ function ResultsView({ result, onShare, onSave }) {
             <h3>Skin conditions</h3>
             
             <div className="conditions-list">
-              {skinConditions?.map((condition, index) => (
+              {displayConditions.map((condition, index) => (
                 <div 
                   key={index} 
                   className={`condition-item ${condition.active ? 'active' : ''}`}
@@ -235,7 +248,7 @@ function ResultsView({ result, onShare, onSave }) {
               ))}
             </div>
             
-            {skinConditions?.find(c => c.active)?.type === 'sensitivity' && (
+            {displayConditions.find(c => c.active)?.type === 'sensitivity' && (
               <div className="condition-details">
                 <h4>Sensitivity</h4>
                 <p className="condition-description">

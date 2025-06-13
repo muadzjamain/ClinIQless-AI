@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getFirestore, collection, addDoc, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FaCamera, FaUpload, FaInfoCircle, FaSpinner, FaTimes, FaHistory } from 'react-icons/fa';
 import CameraCapture from '../components/skin/CameraCapture';
@@ -199,69 +199,60 @@ function SkinAnalysis() {
       setError('');
       
       // Upload image to Firebase Storage
-      const storageRef = ref(storage, `skin-analyses/${currentUser.uid}/${Date.now()}`);
+      const storageRef = ref(storage, `skinImages/${currentUser.uid}/${Date.now()}`);
       await uploadBytes(storageRef, image);
       
       // Get download URL
       const downloadURL = await getDownloadURL(storageRef);
       
-      // Simulate AI analysis (in production, this would call a backend API)
-      // This is a placeholder for the actual AI analysis
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
+      // Create form data for API request
+      const formData = new FormData();
+      formData.append('image', image);
+      formData.append('imageUrl', downloadURL);
+      formData.append('lightCondition', 'indoor'); // Could be detected or selected by user
+      formData.append('bodyPart', 'face');
+      formData.append('notes', '');
       
-      // Mock analysis result
-      const mockResult = {
-        timestamp: Date.now(),
-        imageUrl: downloadURL,
-        userName: userProfile?.displayName || currentUser.email,
-        skinScore: Math.floor(Math.random() * 40) + 60, // 60-100
-        skinAge: Math.floor(Math.random() * 10) + (userProfile?.age || 25),
-        skinType: ['dry', 'normal', 'combination', 'oily'][Math.floor(Math.random() * 4)],
-        skinTone: ['light', 'medium', 'dark'][Math.floor(Math.random() * 3)],
-        skinConditions: [
-          { name: 'Sensitivity', active: Math.random() > 0.5, type: 'sensitivity' },
-          { name: 'Acne', active: Math.random() > 0.7, type: 'acne' },
-          { name: 'Dark Circles', active: Math.random() > 0.6, type: 'dark-circles' },
-          { name: 'Fine Lines', active: Math.random() > 0.8, type: 'wrinkles' }
-        ].filter(c => c.active),
-        metrics: {
-          smoothness: Math.floor(Math.random() * 40) + 60,
-          moisture: Math.floor(Math.random() * 40) + 60,
-          elasticity: Math.floor(Math.random() * 40) + 60,
-          fineness: Math.floor(Math.random() * 40) + 60,
-          sensitivity: Math.floor(Math.random() * 40) + 60,
-          homogeneity: Math.floor(Math.random() * 40) + 60
-        },
-        recommendations: {
-          cleansers: [
-            { name: 'Gentle Foaming Cleanser', description: 'Sulfate-free formula for daily cleansing' },
-            { name: 'Hydrating Cream Cleanser', description: 'For dry and sensitive skin types' }
-          ],
-          moisturizers: [
-            { name: 'Oil-Free Moisturizer', description: 'Lightweight hydration for combination skin' },
-            { name: 'Ceramide Repair Cream', description: 'Restores skin barrier and prevents moisture loss' }
-          ],
-          treatments: [
-            { name: 'Vitamin C Serum', description: 'Brightens and provides antioxidant protection' },
-            { name: 'Niacinamide Solution', description: 'Reduces pore appearance and improves skin texture' }
-          ]
-        },
-        recommendation: 'Based on our analysis, we recommend using a gentle cleanser and moisturizer suitable for your skin type.'
-      };
+      // Get the user's ID token for authentication
+      const idToken = await currentUser.getIdToken();
       
-      // Save analysis to Firestore
-      await addDoc(collection(db, 'skinAnalyses'), {
-        userId: currentUser.uid,
-        timestamp: mockResult.timestamp,
-        imageUrl: downloadURL,
-        skinType: mockResult.skinType,
-        skinScore: mockResult.skinScore,
-        skinConditions: mockResult.skinConditions,
-        recommendation: mockResult.recommendation
+      // Call the backend API for skin analysis
+      const response = await fetch('/api/skin/analyze', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: formData
       });
       
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to analyze skin image');
+      }
+      
+      // Get the analysis result
+      const analysisData = await response.json();
+      const result = analysisData.data;
+      
+      // Add user information to the result
+      result.userName = userProfile?.displayName || currentUser.email;
+      result.imageUrl = downloadURL;
+      
+      // Convert conditions format for compatibility with existing UI
+      result.skinConditions = result.conditions?.map(c => ({
+        name: c.name,
+        active: c.active,
+        type: c.name.toLowerCase().replace(' ', '-')
+      })) || [];
+      
+      // For compatibility with existing code
+      result.skinScore = result.overallScore;
+      result.recommendation = 'Based on our analysis, we recommend following the personalized skincare routine provided.';
+      
       // Set the analysis result
-      setAnalysisResult(mockResult);
+      setAnalysisResult(result);
+      
+      // No need to save to Firestore again as the backend already did that
       
       // Show results view
       setActiveView('results');

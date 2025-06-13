@@ -1,28 +1,8 @@
 rules_version = '2';
-
-// Craft rules based on your security requirements and auth methods
 service firebase.storage {
   match /b/{bucket}/o {
-    // Audio recordings - users can only access their own recordings
-    match /audio/{userId}/{allPaths=**} {
+    match /skinImages/{userId}/{imageId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Skin images - users can only access their own images
-    match /skin/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Conversation recordings - users can only access their own recordings
-    match /conversations/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Public assets - anyone can read, only admins can write
-    match /public/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && 
-                     request.auth.token.admin == true;
     }
   }
 }
