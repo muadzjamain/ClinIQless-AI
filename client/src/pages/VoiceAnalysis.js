@@ -58,7 +58,7 @@ function VoiceAnalysis() {
       glucoseLevel: 'Estimated Glucose Level',
       mmolL: 'mmol/L',
       mgdL: 'mg/dL',
-      pastAnalyses: 'Past Analyses',
+      pastAnalyses: 'Past Analysis',
       noAnalyses: 'No voice analyses found',
       loading: 'Loading...',
       riskLevel: 'Diabetes Risk Level',
