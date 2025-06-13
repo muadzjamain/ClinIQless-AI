@@ -374,7 +374,7 @@ function DoctorAdvice() {
                 onClick={startRecording}
                 disabled={analyzing || audioURL}
               >
-                <FaMicrophone />
+                <FaMicrophone style={{ fontSize: '1.5rem' }} />
                 {t.startRecording}
               </button>
               
@@ -383,7 +383,7 @@ function DoctorAdvice() {
                 onClick={() => document.getElementById('audio-upload').click()}
                 disabled={recording || analyzing || audioURL}
               >
-                <FaUpload />
+                <FaUpload style={{ fontSize: '1.5rem' }} />
                 {t.uploadRecording}
               </button>
               <input 
