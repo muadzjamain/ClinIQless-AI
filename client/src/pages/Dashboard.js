@@ -171,7 +171,7 @@ function Dashboard() {
               {labels.welcome}, {userProfile?.displayName || currentUser?.displayName || 'User'}! 👋
             </h1>
             <p className="welcome-subtitle">
-              Here's your health overview for today
+              Here's your health overview for todays
             </p>
           </div>
           <div className="welcome-stats">
