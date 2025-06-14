@@ -1,11 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getFirestore, collection, addDoc, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { FaCamera, FaUpload, FaImage, FaInfoCircle, FaSpinner, FaTimes } from 'react-icons/fa';
+import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { FaCamera, FaUpload, FaImage, FaInfoCircle, FaSpinner, FaTimes, FaTrash } from 'react-icons/fa';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
+import { 
+  WaterDrop, 
+  Balance, 
+  Opacity, 
+  Grain, 
+  Face, 
+  RemoveRedEye, 
+  Brightness3, 
+  FaceRetouchingOff, 
+  CleaningServices, 
+  Elderly 
+} from '@mui/icons-material';
 import './SkinAnalysis.css';
 
 // Register Chart.js components
@@ -23,6 +35,9 @@ function SkinAnalysis() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCamera, setShowCamera] = useState(false);
+  const [selectedCondition, setSelectedCondition] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [analysisToDelete, setAnalysisToDelete] = useState(null);
   
   const fileInputRef = useRef();
   const videoRef = useRef();
@@ -474,6 +489,46 @@ function SkinAnalysis() {
     }
   };
   
+  // Delete an analysis
+  const handleDeleteAnalysis = (analysisId) => {
+    setAnalysisToDelete(analysisId);
+    setShowDeleteConfirm(true);
+  };
+  
+  // Confirm deletion of an analysis
+  const confirmDeleteAnalysis = async () => {
+    try {
+      const analysisToDeleteDoc = pastAnalyses.find(a => a.id === analysisToDelete);
+      
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'skinAnalyses', analysisToDelete));
+      
+      // Delete the image file from Storage if it exists
+      if (analysisToDeleteDoc?.imageUrl) {
+        const imageRef = ref(storage, analysisToDeleteDoc.imageUrl);
+        await deleteObject(imageRef).catch(err => console.log('Image file may have already been deleted', err));
+      }
+      
+      // Update the analyses list
+      setPastAnalyses(pastAnalyses.filter(analysis => analysis.id !== analysisToDelete));
+      
+      // Reset states
+      setShowDeleteConfirm(false);
+      setAnalysisToDelete(null);
+      
+    } catch (error) {
+      console.error('Error deleting analysis:', error);
+      setError('Failed to delete analysis');
+      setShowDeleteConfirm(false);
+    }
+  };
+  
+  // Cancel deletion
+  const cancelDeleteAnalysis = () => {
+    setShowDeleteConfirm(false);
+    setAnalysisToDelete(null);
+  };
+  
   // Format date
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
@@ -508,11 +563,7 @@ function SkinAnalysis() {
         <p className="page-description">{t.description}</p>
       </div>
       
-      {/* Disclaimer */}
-      <div className={`disclaimer ${theme}`}>
-        <FaInfoCircle className="disclaimer-icon" />
-        <p>{t.disclaimer}</p>
-      </div>
+      {/* Disclaimer removed */}
       
       {/* Error message */}
       {error && (
@@ -778,19 +829,27 @@ function SkinAnalysis() {
                     <div className="property-label">{t.type}</div>
                     <div className="skin-type-options">
                       <div className={`skin-type-option ${analysisResult.skinType === 'dry' ? 'selected' : ''}`}>
-                        <div className="type-icon dry"></div>
+                        <div className="type-icon dry">
+                          <WaterDrop sx={{ color: '#8B4513', fontSize: 24 }} />
+                        </div>
                         <div className="type-label">{t.dry}</div>
                       </div>
                       <div className={`skin-type-option ${analysisResult.skinType === 'normal' ? 'selected' : ''}`}>
-                        <div className="type-icon normal"></div>
+                        <div className="type-icon normal">
+                          <Balance sx={{ color: '#4CAF50', fontSize: 24 }} />
+                        </div>
                         <div className="type-label">{t.normal}</div>
                       </div>
                       <div className={`skin-type-option ${analysisResult.skinType === 'combination' ? 'selected' : ''}`}>
-                        <div className="type-icon combination"></div>
+                        <div className="type-icon combination">
+                          <Grain sx={{ color: '#9C27B0', fontSize: 24 }} />
+                        </div>
                         <div className="type-label">{t.combination}</div>
                       </div>
                       <div className={`skin-type-option ${analysisResult.skinType === 'oily' ? 'selected' : ''}`}>
-                        <div className="type-icon oily"></div>
+                        <div className="type-icon oily">
+                          <Opacity sx={{ color: '#2196F3', fontSize: 24 }} />
+                        </div>
                         <div className="type-label">{t.oily}</div>
                       </div>
                     </div>
@@ -815,53 +874,152 @@ function SkinAnalysis() {
               <div className="skin-conditions-section">
                 <h3>{t.skinConditions}</h3>
                 
-                <div className="conditions-container">
-                  <div className="conditions-list">
-                    {['sensitivity', 'darkCircles', 'acne', 'comedones', 'wrinkles'].map(conditionId => {
-                      const isDetected = analysisResult.conditions.some(c => c.id === conditionId);
-                      return (
-                        <div 
-                          key={conditionId} 
-                          className={`condition-item ${isDetected ? 'detected' : ''}`}
-                        >
-                          {t[conditionId]}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  <div className="condition-face-icon">
-                    {/* Face icon placeholder */}
-                  </div>
+                <div className="conditions-tabs">
+                  {['sensitivity', 'darkCircles', 'acne', 'comedones', 'wrinkles'].map(conditionId => {
+                    const condition = analysisResult.conditions.find(c => c.id === conditionId);
+                    const isSelected = selectedCondition === conditionId;
+                    
+                    // Get appropriate icon for each condition
+                    let ConditionIcon;
+                    switch(conditionId) {
+                      case 'sensitivity':
+                        ConditionIcon = RemoveRedEye;
+                        break;
+                      case 'darkCircles':
+                        ConditionIcon = Brightness3;
+                        break;
+                      case 'acne':
+                        ConditionIcon = FaceRetouchingOff;
+                        break;
+                      case 'comedones':
+                        ConditionIcon = CleaningServices;
+                        break;
+                      case 'wrinkles':
+                        ConditionIcon = Elderly;
+                        break;
+                      default:
+                        ConditionIcon = Face;
+                    }
+                    
+                    return (
+                      <div 
+                        key={conditionId} 
+                        className={`condition-tab ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setSelectedCondition(isSelected ? null : conditionId)}
+                      >
+                        <ConditionIcon fontSize="small" />
+                        <span className="condition-name">{t[conditionId]}</span>
+                      </div>
+                    );
+                  })}
                 </div>
                 
-                {analysisResult.conditions.map(condition => (
-                  <div key={condition.id} className="condition-detail">
-                    <h4>{condition.name}</h4>
-                    <p>{t.yourSkinIs} <strong>{condition.level === 'high' ? t.high : condition.level === 'moderate' ? t.moderate : t.excellent}</strong></p>
-                    
-                    <div className="condition-options">
-                      <div className={`condition-option ${condition.level !== 'high' ? 'selected' : ''}`}>
-                        <div className="option-icon strong"></div>
-                        <div className="option-label">{t.strong}</div>
-                      </div>
-                      <div className={`condition-option ${condition.level === 'high' ? 'selected' : ''}`}>
-                        <div className="option-icon sensitive"></div>
-                        <div className="option-label">{condition.id === 'sensitivity' ? t.sensitive : t.weak}</div>
-                      </div>
-                    </div>
-                    
-                    <div className="condition-tips">
-                      <h4>{t.tips}</h4>
-                      <p>{condition.description}</p>
-                      <ol>
-                        {condition.tips.map((tip, index) => (
-                          <li key={index}>{tip}</li>
-                        ))}
-                      </ol>
-                    </div>
+                {selectedCondition && (
+                  <div className="condition-detail-container">
+                    {(() => {
+                      const condition = analysisResult.conditions.find(c => c.id === selectedCondition);
+                      
+                      if (!condition) {
+                        // Create a placeholder for conditions not detected
+                        const placeholderCondition = {
+                          id: selectedCondition,
+                          name: t[selectedCondition],
+                          level: 'excellent',
+                          description: selectedCondition === 'darkCircles' 
+                            ? 'Dark circles under eyes refer to the condition when the skin beneath eyes darkens.'
+                            : selectedCondition === 'acne'
+                            ? 'Acne refers to the condition when your skin follicles are clogged.'
+                            : selectedCondition === 'comedones'
+                            ? 'Comedones are pores that are blocked with oil and dead skin cells.'
+                            : selectedCondition === 'wrinkles'
+                            ? 'Wrinkles are the lines that form in your skin. Getting wrinkles is a natural part of aging.'
+                            : 'Sensitivity refers to how your skin reacts to external factors.',
+                          tips: [
+                            selectedCondition === 'darkCircles' 
+                              ? 'Get adequate sleep and stay hydrated.'
+                              : selectedCondition === 'acne'
+                              ? 'Clean your face thoroughly everyday with gentle cleanser.'
+                              : selectedCondition === 'comedones'
+                              ? 'Cleanse your face twice daily with lukewarm water.'
+                              : selectedCondition === 'wrinkles'
+                              ? 'Always use sunscreen to protect your skin against the sun.'
+                              : 'Use gentle, fragrance-free skincare products.',
+                            'Maintain a healthy diet rich in fruits and vegetables.',
+                            'Stay hydrated and get enough sleep.'
+                          ]
+                        };
+                        
+                        return (
+                          <div className="condition-detail">
+                            <h4>{placeholderCondition.name}</h4>
+                            <p>
+                              {selectedCondition === 'darkCircles' 
+                                ? "You don't have any dark circles"
+                                : selectedCondition === 'acne'
+                                ? "You don't have any acne"
+                                : selectedCondition === 'comedones'
+                                ? "You don't have any comedones"
+                                : selectedCondition === 'wrinkles'
+                                ? "You have some fine wrinkles"
+                                : "Your skin is strong"}
+                            </p>
+                            
+                            <div className="condition-level-indicator">
+                              <div className="level-label">
+                                {selectedCondition === 'sensitivity' ? 'Strong' : 'Healthy'}
+                              </div>
+                              <div className="level-bar">
+                                <div className="level-progress level-low" style={{ width: '25%' }}></div>
+                              </div>
+                            </div>
+                            
+                            <div className="condition-tips">
+                              <h4>{t.tips}</h4>
+                              <p>{placeholderCondition.description}</p>
+                              <ol>
+                                {placeholderCondition.tips.map((tip, index) => (
+                                  <li key={index}>{tip}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // For detected conditions
+                      return (
+                        <div className="condition-detail">
+                          <h4>{condition.name}</h4>
+                          <p>{t.yourSkinIs} <strong>{condition.level === 'high' ? t.high : condition.level === 'moderate' ? t.moderate : t.excellent}</strong></p>
+                          
+                          <div className="condition-level-indicator">
+                            <div className="level-label">
+                              {condition.level === 'high' ? 'High' : condition.level === 'moderate' ? 'Moderate' : 'Mild'}
+                            </div>
+                            <div className="level-bar">
+                              <div 
+                                className={`level-progress ${condition.level === 'high' ? 'level-high' : condition.level === 'moderate' ? 'level-medium' : 'level-low'}`} 
+                                style={{ 
+                                  width: condition.level === 'high' ? '75%' : condition.level === 'moderate' ? '50%' : '25%' 
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          <div className="condition-tips">
+                            <h4>{t.tips}</h4>
+                            <p>{condition.description}</p>
+                            <ol>
+                              {condition.tips.map((tip, index) => (
+                                <li key={index}>{tip}</li>
+                              ))}
+                            </ol>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
-                ))}
+                )}
               </div>
               
               {/* Action Buttons */}
@@ -883,6 +1041,29 @@ function SkinAnalysis() {
         </div>
       )}
       
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay">
+          <div className={`modal-content ${theme}`}>
+            <h3>{t.deleteConfirm || 'Are you sure you want to delete this analysis?'}</h3>
+            <div className="modal-actions">
+              <button 
+                className="btn btn-danger" 
+                onClick={confirmDeleteAnalysis}
+              >
+                <FaTrash /> {t.yes || 'Yes, Delete'}
+              </button>
+              <button 
+                className="btn btn-outline" 
+                onClick={cancelDeleteAnalysis}
+              >
+                {t.no || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Past Analyses */}
       <div className="section-header">
         <h2>{t.pastAnalyses}</h2>
@@ -917,6 +1098,14 @@ function SkinAnalysis() {
                       <div className={`confidence-badge ${confidence.class}`}>
                         <span className="confidence-score">{analysis.result.confidence || 0}%</span>
                       </div>
+                      
+                      <button 
+                        className="btn-icon btn-delete" 
+                        onClick={() => handleDeleteAnalysis(analysis.id)}
+                        aria-label="Delete analysis"
+                      >
+                        <FaTrash />
+                      </button>
                     </div>
                     
                     <div className="analysis-recommendations">

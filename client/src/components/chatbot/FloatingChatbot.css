@@ -168,6 +168,12 @@
   border-top: 1px solid #e0e0e0;
 }
 
+.chatbot-input form {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
 .chatbot-input input {
   flex: 1;
   padding: 10px 15px;
@@ -189,16 +195,139 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .chatbot-input button:hover {
   background-color: #3367d6;
+  transform: scale(1.05);
 }
 
 .chatbot-input button:disabled {
   background-color: #a8a8a8;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* Voice button styles */
+.voice-button {
+  position: relative;
+  background-color: #34a853 !important; /* Green color for voice */
+}
+
+.voice-button:hover {
+  background-color: #2d9249 !important;
+}
+
+/* Voice tooltip styles */
+.voice-button::before {
+  content: 'Talk with AI Assistant';
+  position: absolute;
+  bottom: 45px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+}
+
+.voice-button::after {
+  content: '';
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  z-index: 100;
+}
+
+.voice-button:hover::before,
+.voice-button:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.voice-button.recording::before {
+  content: 'Stop conversation';
+  background-color: #d32f2f;
+}
+
+.voice-button.recording::after {
+  border-color: #d32f2f transparent transparent transparent;
+}
+
+.voice-button.recording {
+  background-color: #ea4335 !important; /* Red color when recording */
+  animation: pulse 1.5s infinite;
+}
+
+/* Voice message styles */
+.voice-message {
+  position: relative;
+  padding-left: 30px !important;
+}
+
+.voice-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.7;
+  color: inherit;
+}
+
+.user .voice-message .voice-icon {
+  color: white;
+}
+
+body.dark-theme .bot .voice-message .voice-icon {
+  color: #f5f5f5;
+}
+
+.recording-time {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  white-space: nowrap;
+  animation: listening-pulse 1.5s infinite;
+}
+
+@keyframes listening-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 67, 53, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
+  }
 }
 
 /* Dark theme support */

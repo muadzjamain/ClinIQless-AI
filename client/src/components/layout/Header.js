@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useNotifications } from '../../contexts/NotificationContext';
+import NotificationDropdown from '../notifications/NotificationDropdown';
 import './Header.css';
 
 // Import icons
@@ -17,6 +19,9 @@ import {
 function Header({ toggleSidebar }) {
   const { currentUser, userProfile, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { unreadCount, addNotification } = useNotifications();
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+  const notificationRef = useRef(null);
   const navigate = useNavigate();
   
   const handleLogout = async () => {
@@ -26,6 +31,33 @@ function Header({ toggleSidebar }) {
     } catch (error) {
       console.error('Failed to log out', error);
     }
+  };
+  
+  const toggleNotificationDropdown = () => {
+    setNotificationDropdownOpen(prev => !prev);
+  };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationDropdownOpen(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Demo function to add a test notification
+  const addTestNotification = () => {
+    addNotification({
+      title: 'Test Notification',
+      message: 'This is a test notification added at ' + new Date().toLocaleTimeString(),
+      type: 'info'
+    });
   };
   
   return (
@@ -58,11 +90,23 @@ function Header({ toggleSidebar }) {
           {theme === 'light' ? <FaMoon /> : <FaSun />}
         </button>
         
-        <div className="notifications">
-          <button className="notification-btn" aria-label="Notifications">
+        <div className="notifications" ref={notificationRef}>
+          <button 
+            className="notification-btn" 
+            aria-label="Notifications"
+            onClick={toggleNotificationDropdown}
+          >
             <FaBell />
-            <span className="notification-badge">3</span>
+            {unreadCount > 0 && (
+              <span className="notification-badge">{unreadCount}</span>
+            )}
           </button>
+          {notificationDropdownOpen && (
+            <NotificationDropdown 
+              isOpen={notificationDropdownOpen} 
+              onClose={() => setNotificationDropdownOpen(false)} 
+            />
+          )}
         </div>
         
         {currentUser && (

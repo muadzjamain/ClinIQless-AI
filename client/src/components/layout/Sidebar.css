@@ -188,6 +188,24 @@
   animation: pulse-badge 2s infinite;
 }
 
+/* Gray out menu items with coming soon badge */
+.coming-soon-item,
+.coming-soon-item .nav-icon,
+.coming-soon-item .nav-text {
+  color: #717171 !important;
+}
+
+.dark .coming-soon-item,
+.dark .coming-soon-item .nav-icon,
+.dark .coming-soon-item .nav-text {
+  color: #717171 !important;
+}
+
+/* Keep the badge text white */
+.coming-soon-badge {
+  color: white !important;
+}
+
 @keyframes pulse-badge {
   0% { opacity: 1; }
   50% { opacity: 0.7; }

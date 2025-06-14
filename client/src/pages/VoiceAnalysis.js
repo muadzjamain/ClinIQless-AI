@@ -150,7 +150,6 @@ function VoiceAnalysis() {
         setAnalyses(analysesData);
       } catch (error) {
         console.error('Error fetching voice analyses:', error);
-        setError('Failed to load past analyses');
       } finally {
         setLoading(false);
       }

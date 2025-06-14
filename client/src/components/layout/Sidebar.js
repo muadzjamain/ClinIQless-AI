@@ -78,30 +78,7 @@ function Sidebar({ isOpen }) {
               <span className="nav-text">{labels.dashboard}</span>
             </NavLink>
           </li>
-          
-          <li>
-            <NavLink 
-              to="/health-tracker" 
-              className={({ isActive }) => isActive ? 'active' : ''}
-            >
-              <FaHeartbeat className="nav-icon" />
-              <span className="nav-text">
-                {labels.healthTracker}
-                <span className="coming-soon-badge">Coming Soon</span>
-              </span>
-            </NavLink>
-          </li>
-          
-          <li>
-            <NavLink 
-              to="/doctor-advice" 
-              className={({ isActive }) => isActive ? 'active' : ''}
-            >
-              <FaUserMd className="nav-icon" />
-              <span className="nav-text">{labels.doctorAdvice}</span>
-            </NavLink>
-          </li>
-          
+
           <li>
             <NavLink 
               to="/voice-analysis" 
@@ -119,6 +96,29 @@ function Sidebar({ isOpen }) {
             >
               <FaCamera className="nav-icon" />
               <span className="nav-text">{labels.skinAnalysis}</span>
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink 
+              to="/doctor-advice" 
+              className={({ isActive }) => isActive ? 'active' : ''}
+            >
+              <FaUserMd className="nav-icon" />
+              <span className="nav-text">{labels.doctorAdvice}</span>
+            </NavLink>
+          </li>
+          
+          <li>
+            <NavLink 
+              to="/health-tracker" 
+              className={({ isActive }) => isActive ? 'active coming-soon-item' : 'coming-soon-item'}
+            >
+              <FaHeartbeat className="nav-icon" />
+              <span className="nav-text">
+                {labels.healthTracker}
+                <span className="coming-soon-badge">Coming Soon</span>
+              </span>
             </NavLink>
           </li>
           

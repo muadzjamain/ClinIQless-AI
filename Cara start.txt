@@ -1,0 +1,14 @@
+IMPORTANT
+ClinIQless AI, start
+1. cd client
+2. npm start
+
+///////////////////
+
+end:
+taskkill /f /im node.exe
+
+
+start server:
+cd server
+npm run dev

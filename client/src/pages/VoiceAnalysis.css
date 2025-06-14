@@ -209,9 +209,12 @@
   max-width: 500px;
   padding: 1.5rem;
   border-radius: 8px;
-  margin-top: 1rem;
+  margin: 1rem auto;
   text-align: center;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .glucose-results.light {
@@ -233,14 +236,16 @@
 .glucose-values {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  gap: 3rem;
   margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .glucose-value {
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 80px;
 }
 
 .glucose-value .value {
