@@ -226,7 +226,7 @@ function SkinAnalysis() {
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+        video: { facingMode: 'user' } 
       });
       
       if (videoRef.current) {
