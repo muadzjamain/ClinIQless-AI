@@ -36,7 +36,7 @@ function DoctorAdvice() {
   // Multilingual labels
   const labels = {
     en: {
-      title: 'Doctor Advice Validator',
+      title: 'Doctor Advice',
       description: 'Record medical advice to validate its accuracy and reliability',
       startRecording: 'Start Recording',
       stopRecording: 'Stop Recording',
@@ -47,7 +47,7 @@ function DoctorAdvice() {
       playRecording: 'Play Recording',
       pauseRecording: 'Pause',
       deleteRecording: 'Delete Recording',
-      validateAdvice: 'Validate Advice',
+      validateAdvice: 'Summarize Advice',
       analyzing: 'Analyzing medical advice...',
       reliability: 'Reliability Score',
       accurate: 'Accurate',
@@ -255,58 +255,74 @@ function DoctorAdvice() {
       {
         advice: 'Take antibiotics for viral infections',
         accuracy: 'inaccurate',
-        score: 15,
+        scoreRange: [10, 30],
         explanation: 'Antibiotics are ineffective against viral infections and should only be used for bacterial infections.',
         recommendations: [
           'Consult with a healthcare provider for proper diagnosis',
           'Use antiviral medications if prescribed',
           'Focus on symptomatic relief for viral infections'
         ],
-        riskLevel: 'warning'
+        riskLevel: 'warning',
+        corrections: [
+          'Antibiotics do not work against viruses; they are only effective for bacterial infections.',
+          'Taking antibiotics unnecessarily can lead to resistance and side effects.',
+          'Proper diagnosis is needed before starting any medication.'
+        ]
       },
       {
         advice: 'Drink plenty of water when you have a fever',
         accuracy: 'accurate',
-        score: 92,
+        scoreRange: [90, 100],
         explanation: 'Staying hydrated is important when having a fever as it helps regulate body temperature and prevents dehydration.',
         recommendations: [
           'Continue hydration with water and electrolyte solutions',
           'Monitor temperature regularly',
           'Seek medical attention if fever persists or worsens'
         ],
-        riskLevel: 'safe'
+        riskLevel: 'safe',
+        corrections: []
       },
       {
         advice: 'Exercise vigorously when you have chest pain',
         accuracy: 'inaccurate',
-        score: 8,
+        scoreRange: [5, 25],
         explanation: 'Vigorous exercise during chest pain can be dangerous and may indicate underlying cardiac issues.',
         recommendations: [
           'Stop all physical activity immediately',
           'Seek emergency medical attention for chest pain',
           'Never ignore chest pain symptoms'
         ],
-        riskLevel: 'warning'
+        riskLevel: 'warning',
+        corrections: [
+          'Exercising with chest pain can worsen underlying heart problems.',
+          'Chest pain should be evaluated by a healthcare professional immediately.',
+          'Ignoring chest pain can be life-threatening.'
+        ]
       },
       {
         advice: 'Check blood sugar levels regularly if you have diabetes',
         accuracy: 'accurate',
-        score: 95,
+        scoreRange: [95, 100],
         explanation: 'Regular blood sugar monitoring is essential for diabetes management and helps prevent complications.',
         recommendations: [
           'Follow your healthcare provider\'s monitoring schedule',
           'Keep a log of your readings',
           'Adjust diet and medication as advised by your doctor'
         ],
-        riskLevel: 'safe'
+        riskLevel: 'safe',
+        corrections: []
       }
     ];
 
     // Randomly select a scenario for mockup
     const randomScenario = mockAdviceScenarios[Math.floor(Math.random() * mockAdviceScenarios.length)];
+    // Generate a random score within the scenario's range
+    const [minScore, maxScore] = randomScenario.scoreRange;
+    const randomScore = Math.floor(Math.random() * (maxScore - minScore + 1)) + minScore;
 
     const validationData = {
       ...randomScenario,
+      score: randomScore,
       timestamp: new Date(),
       audioUrl: audioURL,
       duration: recordingTime
@@ -470,26 +486,13 @@ function DoctorAdvice() {
       {/* Validation Results */}
       {validationResult && (
         <div className="validation-results">
-          <div className="result-header">
-            <h3>Validation Results</h3>
-            <div className={`risk-badge ${validationResult.riskLevel}`}>
-              {validationResult.riskLevel === 'safe' ? <FaCheck /> : <FaInfoCircle />}
-              {validationResult.riskLevel === 'safe' ? t.safe : t.warning}
-            </div>
+          {/* 1. Summary */}
+          <div className="doctor-advice-summary">
+            <h3>Summary</h3>
+            <p>Dr. Sarah Chen recommends drinking plenty of water throughout the day, getting consistent rest to support your immune system and avoiding strenuous activity while you recover. She also suggests monitoring your symptoms closely, especially if they worsen or do not improve after a few days. In those cases, it's important to consult with a healthcare provider who can determine whether additional treatment is needed, such as antiviral medication or supportive care. Managing stress, eating balanced meals and avoiding alcohol or smoking can also help your body heal more effectively.</p>
           </div>
 
-          <div className="accuracy-score">
-            <div className="score-circle">
-              <span className="score-value">{validationResult.score}%</span>
-              <span className="score-label">{t.reliability}</span>
-            </div>
-            <div className="accuracy-status">
-              <h4>{validationResult.accuracy === 'accurate' ? t.accurate : 
-                   validationResult.accuracy === 'partiallyAccurate' ? t.partiallyAccurate : t.inaccurate}</h4>
-              <p>{validationResult.explanation}</p>
-            </div>
-          </div>
-
+          {/* 2. Recommendations */}
           <div className="recommendations">
             <h4>{t.recommendations}</h4>
             <ul>
@@ -498,6 +501,40 @@ function DoctorAdvice() {
               ))}
             </ul>
           </div>
+
+          {/* 3. Advice Validation Result */}
+          <div className="advice-validation-result">
+            <div className="result-header">
+              <h3>Advice Validation Result</h3>
+              <div className={`risk-badge ${validationResult.riskLevel}`}>
+                {validationResult.riskLevel === 'safe' ? <FaCheck /> : <FaInfoCircle />}
+                {validationResult.riskLevel === 'safe' ? t.safe : t.warning}
+              </div>
+            </div>
+            <div className="accuracy-score">
+              <div className="score-circle">
+                <span className="score-value">{validationResult.score}%</span>
+                <span className="score-label">{t.reliability}</span>
+              </div>
+              <div className="accuracy-status">
+                <h4>{validationResult.accuracy === 'accurate' ? t.accurate : 
+                     validationResult.accuracy === 'partiallyAccurate' ? t.partiallyAccurate : t.inaccurate}</h4>
+                <p>{validationResult.explanation}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Correction (mocked, scenario-based, only if score <= 95%) */}
+          {(validationResult.score <= 95) && validationResult.corrections && validationResult.corrections.length > 0 && (
+            <div className="correction-section">
+              <h4>Correction</h4>
+              <ul>
+                {validationResult.corrections.map((point, idx) => (
+                  <li key={idx}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

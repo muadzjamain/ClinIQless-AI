@@ -1021,12 +1021,7 @@ function SkinAnalysis() {
                   </div>
                 )}
               </div>
-              
-              {/* Action Buttons */}
-              <div className="action-buttons">
-                <button className="btn btn-outline">{t.post}</button>
-                <button className="btn btn-primary">{t.share}</button>
-              </div>
+            
               
               <div className="result-actions">
                 <button 
