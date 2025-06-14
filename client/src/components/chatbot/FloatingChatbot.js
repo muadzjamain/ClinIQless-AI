@@ -17,6 +17,7 @@ const FloatingChatbot = () => {
   const messagesEndRef = useRef(null);
   const { currentUser } = useAuth();
   const { theme } = useTheme();
+  const recognitionRef = useRef(null);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -35,6 +36,36 @@ const FloatingChatbot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (!('webkitSpeechRecognition' in window)) {
+      console.error("Speech recognition not supported");
+      return;
+    }
+
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInputValue(transcript);
+      // Automatically submit the transcript
+      handleVoiceResponse(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, []);
 
   // Handle recording timer
   useEffect(() => {
@@ -74,7 +105,7 @@ const FloatingChatbot = () => {
       setIsTyping(false);
       
       // Simple responses based on keywords
-      let botResponse = "Hello Jamal! How can I assist you today?";
+      let botResponse = `Hello ${currentUser?.displayName || 'there'}! How can I assist you today?`;
       
       const userMessage = inputValue.toLowerCase();
       
@@ -101,14 +132,12 @@ const FloatingChatbot = () => {
   // Toggle voice conversation mode
   const toggleRecording = () => {
     if (isRecording) {
-      // Stop voice conversation
+      recognitionRef.current.stop();
       setIsRecording(false);
-      clearInterval(recordingTimerRef.current);
-      setRecordingTime(0);
     } else {
-      // Start voice conversation
+      setInputValue('');
+      recognitionRef.current.start();
       setIsRecording(true);
-      simulateVoiceConversation();
     }
   };
   
@@ -169,30 +198,38 @@ const FloatingChatbot = () => {
   
   // Handle response to voice input
   const handleVoiceResponse = (voiceText) => {
-    // Simulate bot is typing
+    setMessages(prev => [...prev, { text: voiceText, sender: 'user' }]);
     setIsTyping(true);
-    
-    // Simulate bot response
+
     setTimeout(() => {
       setIsTyping(false);
-      
-      // Simple responses based on keywords
-      let botResponse = "I'm sorry, I didn't catch that. Could you please try again?";
-      
+      let botResponse = `Hello ${currentUser?.displayName || 'there'}! How can I assist you today?`;
       const userMessage = voiceText.toLowerCase();
-      
+
       if (userMessage.includes('hello') || userMessage.includes('hi')) {
         botResponse = `Hello ${currentUser?.displayName || 'there'}! How can I assist you today?`;
-      } else if (userMessage.includes('skin')) {
-        botResponse = "Based on your recent skin analysis, you have combination skin with mild sensitivity. Your skin hydration level is good, but you may want to consider using products for sensitive skin.";
+      } else if (userMessage.includes('glucose') || userMessage.includes('sugar')) {
+        botResponse = "Based on your recent history, your glucose readings have been 5.2 mmol/L (94 mg/dL) on average for the past week, which is within the normal range. Your last reading from yesterday was 5.5 mmol/L.";
       } else if (userMessage.includes('doctor') || userMessage.includes('advice')) {
         botResponse = "Based on your history and the most recent doctor validation, your advice received a score of 92. The recommendation to drink water during a fever is accurate. Staying hydrated helps regulate body temperature and prevents dehydration.";
-      } else if (userMessage.includes('thank')) {
+      } else if (userMessage.includes('health') || userMessage.includes('track') || userMessage.includes('tracker')) {
+        botResponse = "We're currently working on the health tracker feature. It's not ready just yet, but it's coming soon.";
+      } else if (userMessage.includes('thank') || userMessage.includes('thanks') || userMessage.includes('thank you')) {
         botResponse = "You're welcome! Is there anything else I can help you with?";
+      } else if (userMessage.includes('yes')|| userMessage.includes('haah')) {
+        botResponse = "Of course! How can I assist you today?";
+      } else if (userMessage.includes('no')|| userMessage.includes('nope')|| userMessage.includes('nawh')) {
+        botResponse = "Thank you! Have a great day!";
       }
-      
+
       setMessages(prev => [...prev, { text: botResponse, sender: 'bot' }]);
+      speak(botResponse);
     }, 1000);
+  };
+
+  const speak = (text) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(utterance);
   };
 
   return (
@@ -248,7 +285,7 @@ const FloatingChatbot = () => {
                 {isRecording ? <FaStop /> : <FaMicrophone />}
                 {isRecording && <span className="recording-time">Listening...</span>}
               </button>
-              <button type="submit" disabled={isRecording}>
+              <button type="submit" disabled={isRecording || !inputValue.trim()}>
                 <FaPaperPlane />
               </button>
             </form>
