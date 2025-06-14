@@ -316,6 +316,9 @@ function SkinAnalysis() {
           ...pastAnalyses
         ]);
         
+        // Automatically select sensitivity tab after analysis is complete
+        setSelectedCondition('sensitivity');
+        
         setAnalyzing(false);
       }, 2000);
       
